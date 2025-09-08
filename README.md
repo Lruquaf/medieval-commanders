@@ -1,133 +1,222 @@
 # Medieval Commanders Collection
 
-A web application for collecting and managing medieval commander cards. Users can view the collection, propose new commanders, and admins can manage the collection.
+A web application for collecting and managing medieval commander cards with a proposal system for adding new cards.
 
 ## Features
 
-### Public Features
-- **Collection Gallery**: Browse all approved commander cards with filtering by tier
-- **Card Proposals**: Submit new commander proposals with images and attributes
+- **Card Gallery**: View all approved commander cards
+- **Proposal System**: Submit new commander cards for review
+- **Admin Panel**: Approve/reject proposals and manage cards
+- **Image Upload**: Upload commander images with validation
 - **Responsive Design**: Works on desktop and mobile devices
-
-### Admin Features
-- **Proposal Management**: Review, approve, or reject user-submitted proposals
-- **Card Management**: Create, edit, and delete commander cards
-- **Image Upload**: Support for commander images with file validation
-
-### Card System
-- **Attributes**: Strength, Intelligence, Charisma, Leadership (0-100 scale)
-- **Tiers**: Common, Rare, Epic, Legendary
-- **Images**: Support for commander portraits
-- **Descriptions**: Rich text descriptions of commanders
 
 ## Tech Stack
 
-- **Frontend**: React 18, React Router, Vite
+- **Frontend**: React, Vite, React Router
 - **Backend**: Node.js, Express.js
-- **File Upload**: Multer
-- **Styling**: Custom CSS with modern design
-- **Icons**: Lucide React
+- **Database**: SQLite (development) / PostgreSQL (production)
+- **File Upload**: Multer for image handling
+- **Styling**: CSS3 with modern design
 
-## Setup Instructions
+## 🚀 Quick Deploy
+
+### Option 1: Deploy Everything for Free
+
+1. **Backend (Railway)**: 
+   - Connect your GitHub repo to [Railway](https://railway.app)
+   - Railway will auto-deploy your backend with PostgreSQL database
+   - Get your backend URL (e.g., `https://your-app.railway.app`)
+
+2. **Frontend (Vercel)**:
+   - Connect your GitHub repo to [Vercel](https://vercel.com)
+   - Set environment variable: `VITE_API_URL=https://your-app.railway.app`
+   - Vercel will auto-deploy your frontend
+
+### Option 2: Deploy Everything for Free (Alternative)
+
+1. **Backend (Railway)**: Same as above
+2. **Frontend (Netlify)**:
+   - Connect your GitHub repo to [Netlify](https://netlify.com)
+   - Set environment variable: `VITE_API_URL=https://your-app.railway.app`
+   - Netlify will auto-deploy your frontend
+
+## 🛠️ Local Development
 
 ### Prerequisites
-- Node.js (v16 or higher)
+
+- Node.js (v18 or higher)
 - npm or yarn
 
 ### Installation
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd medieval-commanders-collection
+```
 
-2. **Create uploads directory**:
-   ```bash
-   mkdir -p server/uploads
-   ```
+2. Install dependencies:
+```bash
+npm install
+```
 
-3. **Start the development servers**:
+3. Set up environment variables:
+```bash
+cp env.example .env
+# Edit .env with your settings
+```
 
-   **Terminal 1 - Backend Server**:
-   ```bash
-   npm run server
-   ```
-   The backend will run on http://localhost:5000
+4. Set up the database:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-   **Terminal 2 - Frontend Development Server**:
-   ```bash
-   npm run dev
-   ```
-   The frontend will run on http://localhost:3000
+5. Start the development server:
+```bash
+npm run dev
+```
 
-### Usage
+6. Start the backend server (in a new terminal):
+```bash
+npm run server
+```
 
-1. **View Collection**: Visit http://localhost:3000 to see the collection gallery
-2. **Propose Card**: Click "Propose Card" to submit a new commander
-3. **Admin Panel**: Visit http://localhost:3000/admin to manage cards and proposals
+The application will be available at `http://localhost:3000`.
 
-## API Endpoints
-
-### Public Endpoints
-- `GET /api/cards` - Get all approved cards
-- `POST /api/proposals` - Submit a new card proposal
-
-### Admin Endpoints
-- `GET /api/admin/cards` - Get all cards (including pending)
-- `GET /api/admin/proposals` - Get all proposals
-- `POST /api/admin/proposals/:id/approve` - Approve a proposal
-- `POST /api/admin/proposals/:id/reject` - Reject a proposal
-- `POST /api/admin/cards` - Create a new card
-- `PUT /api/admin/cards/:id` - Update a card
-- `DELETE /api/admin/cards/:id` - Delete a card
-
-## File Structure
+## 📁 Project Structure
 
 ```
-medieval-commanders-collection/
 ├── src/
-│   ├── components/
-│   │   ├── Header.jsx
-│   │   ├── Card.jsx
-│   │   ├── ProposalItem.jsx
-│   │   └── CardForm.jsx
-│   ├── pages/
-│   │   ├── CollectionGallery.jsx
-│   │   ├── CreateProposal.jsx
-│   │   └── AdminPanel.jsx
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-├── server/
-│   ├── index.js
-│   └── uploads/
-├── package.json
-├── vite.config.js
-└── README.md
+│   ├── components/          # Reusable React components
+│   ├── pages/              # Page components
+│   ├── config/             # API configuration
+│   └── main.jsx           # Application entry point
+├── server/                 # Backend Express server
+├── prisma/                # Database schema and migrations
+├── public/                # Static assets
+├── railway.json           # Railway deployment config
+├── vercel.json            # Vercel deployment config
+└── env.example            # Environment variables template
 ```
 
-## Sample Data
+## 🔧 Environment Variables
 
-The application comes with sample data including:
-- Richard the Lionheart (Legendary)
-- Saladin (Legendary)
+Create a `.env` file in the root directory:
 
-## Development Notes
+```env
+# Database
+DATABASE_URL="file:./dev.db"  # For development
+# DATABASE_URL="postgresql://..."  # For production (Railway provides this)
 
-- Images are stored in `server/uploads/` directory
-- The application uses in-memory storage (suitable for development)
-- For production, consider using a database like MongoDB or PostgreSQL
-- File uploads are limited to 5MB and image files only
-- All form validation is handled both client-side and server-side
+# Server
+PORT=5001
+NODE_ENV=development
 
-## Contributing
+# Frontend
+VITE_API_URL=http://localhost:5001  # For development
+# VITE_API_URL=https://your-app.railway.app  # For production
+```
+
+## 🌐 API Endpoints
+
+### Cards
+- `GET /api/cards` - Get all approved cards
+- `POST /api/admin/cards` - Create a new card (admin only)
+- `PUT /api/admin/cards/:id` - Update a card (admin only)
+- `DELETE /api/admin/cards/:id` - Delete a card (admin only)
+
+### Proposals
+- `POST /api/proposals` - Submit a new proposal
+- `GET /api/admin/proposals` - Get all proposals (admin only)
+- `POST /api/admin/proposals/:id/approve` - Approve a proposal (admin only)
+- `POST /api/admin/proposals/:id/reject` - Reject a proposal (admin only)
+
+### Health Check
+- `GET /api/health` - Server health status
+
+## 🗄️ Database Schema
+
+### Card Model
+- `id`: Unique identifier
+- `name`: Commander name
+- `email`: Submitter email (optional)
+- `image`: Image file path
+- `attributes`: JSON string of commander attributes
+- `tier`: Card tier (Common, Rare, Epic, Legendary)
+- `description`: Commander description
+- `status`: Card status (approved by default)
+- `createdAt`: Creation timestamp
+- `updatedAt`: Last update timestamp
+
+### Proposal Model
+- `id`: Unique identifier
+- `name`: Commander name
+- `email`: Submitter email
+- `image`: Image file path
+- `attributes`: JSON string of commander attributes
+- `tier`: Card tier
+- `description`: Commander description
+- `status`: Proposal status (pending by default)
+- `createdAt`: Creation timestamp
+- `updatedAt`: Last update timestamp
+
+## 🚀 Deployment Guide
+
+### Railway (Backend)
+
+1. Go to [Railway](https://railway.app) and sign up with GitHub
+2. Click "New Project" → "Deploy from GitHub repo"
+3. Select your repository
+4. Railway will automatically detect it's a Node.js app
+5. Add a PostgreSQL database:
+   - Go to your project dashboard
+   - Click "New" → "Database" → "PostgreSQL"
+6. Railway will provide a `DATABASE_URL` environment variable
+7. Your backend will be deployed automatically
+
+### Vercel (Frontend)
+
+1. Go to [Vercel](https://vercel.com) and sign up with GitHub
+2. Click "New Project" → Import your repository
+3. Set build settings:
+   - Framework Preset: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+4. Add environment variable:
+   - `VITE_API_URL` = your Railway backend URL
+5. Click "Deploy"
+
+### Netlify (Frontend Alternative)
+
+1. Go to [Netlify](https://netlify.com) and sign up with GitHub
+2. Click "New site from Git" → Connect your repository
+3. Set build settings:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+4. Add environment variable:
+   - `VITE_API_URL` = your Railway backend URL
+5. Click "Deploy site"
+
+## 🔄 Updating CORS for Production
+
+After deploying, update the CORS origins in `server/index.js`:
+
+```javascript
+origin: process.env.NODE_ENV === 'production' 
+  ? ['https://your-frontend-domain.vercel.app', 'https://your-frontend-domain.netlify.app']
+  : ['http://localhost:3000', 'http://localhost:5173'],
+```
+
+Replace `your-frontend-domain` with your actual deployed frontend URLs.
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+4. Submit a pull request
 
-## License
+## 📄 License
 
-This project is open source and available under the MIT License.
+This project is licensed under the MIT License.

@@ -16,11 +16,32 @@ const CollectionGallery = () => {
   const fetchCards = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await apiClient.get('/api/cards');
       setCards(response.data);
     } catch (err) {
-      setError('Failed to load cards');
       console.error('Error fetching cards:', err);
+      setError('Failed to load cards. Using sample data...');
+      // Use sample data if API fails
+      setCards([
+        {
+          id: '1',
+          name: 'Richard the Lionheart',
+          email: 'richard@example.com',
+          image: '/placeholder-commander.jpg',
+          attributes: JSON.stringify({
+            strength: 85,
+            intelligence: 70,
+            charisma: 90,
+            leadership: 95
+          }),
+          tier: 'Legendary',
+          description: 'King of England and leader of the Third Crusade',
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ]);
     } finally {
       setLoading(false);
     }

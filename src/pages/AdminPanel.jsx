@@ -55,6 +55,7 @@ const AdminPanel = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [cardsResponse, proposalsResponse] = await Promise.all([
         apiClient.get('/api/admin/cards'),
         apiClient.get('/api/admin/proposals')
@@ -62,8 +63,29 @@ const AdminPanel = () => {
       setCards(cardsResponse.data);
       setProposals(proposalsResponse.data);
     } catch (err) {
-      setError('Failed to load admin data');
       console.error('Error fetching admin data:', err);
+      setError('Failed to load admin data. Using sample data...');
+      // Use sample data if API fails
+      setCards([
+        {
+          id: '1',
+          name: 'Richard the Lionheart',
+          email: 'richard@example.com',
+          image: '/placeholder-commander.jpg',
+          attributes: JSON.stringify({
+            strength: 85,
+            intelligence: 70,
+            charisma: 90,
+            leadership: 95
+          }),
+          tier: 'Legendary',
+          description: 'King of England and leader of the Third Crusade',
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ]);
+      setProposals([]);
     } finally {
       setLoading(false);
     }

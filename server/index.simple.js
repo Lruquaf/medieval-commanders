@@ -13,9 +13,12 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [
         process.env.FRONTEND_URL, 
-        'https://medieval-commanders-q2shk0jcz-lruquafs-projects.vercel.app',
         'https://medieval-commanders.vercel.app',
+        'https://medieval-commanders-git-main-lruquafs-projects.vercel.app',
+        'https://medieval-commanders-q1zz3mdwj-lruquafs-projects.vercel.app',
         'https://medieval-commanders-app.vercel.app',
+        'https://medieval-commanders-collection.vercel.app',
+        'https://medieval-commanders-q2shk0jcz-lruquafs-projects.vercel.app',
         'https://your-frontend-domain.vercel.app', 
         'https://your-frontend-domain.netlify.app'
       ].filter(Boolean)

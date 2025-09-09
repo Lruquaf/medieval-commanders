@@ -13,6 +13,10 @@ npm install
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
 
+# Generate Prisma client in server directory specifically
+echo "Generating Prisma client in server directory..."
+cd server && npx prisma generate --schema=../prisma/schema.railway.prisma && cd ..
+
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "ERROR: DATABASE_URL environment variable is not set!"

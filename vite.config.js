@@ -32,5 +32,8 @@ export default defineConfig({
   define: {
     // Ensure environment variables are available
     'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
-  }
+  },
+  // Vercel specific configuration
+  base: '/',
+  publicDir: 'public'
 })

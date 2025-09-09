@@ -3,7 +3,7 @@
 # Exit on any error
 set -e
 
-echo "Starting deployment..."
+echo "Starting Railway deployment..."
 
 # Install dependencies
 echo "Installing dependencies..."
@@ -22,13 +22,13 @@ fi
 
 echo "DATABASE_URL is set, proceeding with database setup..."
 
-# Generate Prisma client
-echo "Generating Prisma client..."
-npx prisma generate
+# Generate Prisma client for production
+echo "Generating Prisma client for production..."
+npx prisma generate --schema=./prisma/schema.railway.prisma
 
 # Push database schema
 echo "Pushing database schema..."
-npx prisma db push
+npx prisma db push --schema=./prisma/schema.railway.prisma
 
 echo "Database setup complete. Starting server..."
 # Start the server

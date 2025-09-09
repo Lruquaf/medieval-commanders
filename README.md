@@ -68,8 +68,7 @@ cp env.example .env
 
 4. Set up the database:
 ```bash
-npx prisma generate
-npx prisma db push
+npm run db:setup:dev
 ```
 
 5. Start the development server:

@@ -1,0 +1,8 @@
+# Vercel Environment Variables
+# Copy this to your Vercel project settings
+
+# Backend API URL (replace with your actual Railway URL)
+VITE_API_URL=https://your-railway-backend-url.railway.app
+
+# Example Railway URL format:
+# VITE_API_URL=https://medieval-commanders-backend-production.up.railway.app

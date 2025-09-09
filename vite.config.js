@@ -23,9 +23,14 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          router: ['react-router-dom']
+          router: ['react-router-dom'],
+          axios: ['axios']
         }
       }
     }
+  },
+  define: {
+    // Ensure environment variables are available
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
   }
 })

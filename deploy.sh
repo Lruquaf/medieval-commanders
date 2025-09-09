@@ -9,7 +9,7 @@ echo "Starting Railway deployment..."
 echo "Installing dependencies..."
 npm install
 
-# Install server dependencies
+# Install server dependencies (this will also generate Prisma client)
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
 
@@ -21,10 +21,6 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 
 echo "DATABASE_URL is set, proceeding with database setup..."
-
-# Generate Prisma client for production
-echo "Generating Prisma client for production..."
-npx prisma generate --schema=./prisma/schema.railway.prisma
 
 # Push database schema
 echo "Pushing database schema..."

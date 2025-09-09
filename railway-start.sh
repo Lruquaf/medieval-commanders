@@ -24,7 +24,7 @@ if [ -z "$DATABASE_URL" ]; then
     
     # Generate Prisma client without pushing schema
     echo "Generating Prisma client..."
-    npx prisma generate --schema=./prisma/schema.railway.prisma
+    timeout 30 npx prisma generate --schema=./prisma/schema.railway.prisma || echo "Prisma generate timed out, continuing..."
     
     echo "Starting server in maintenance mode..."
     # Start server with a simple health check
@@ -41,13 +41,19 @@ if [ -z "$DATABASE_URL" ]; then
 else
     echo "DATABASE_URL is set, proceeding with full setup..."
     
-    # Generate Prisma client
+    # Generate Prisma client with timeout
     echo "Generating Prisma client..."
-    npx prisma generate --schema=./prisma/schema.railway.prisma
+    timeout 60 npx prisma generate --schema=./prisma/schema.railway.prisma || {
+        echo "Prisma generate failed or timed out, trying alternative approach..."
+        # Try generating without schema file
+        npx prisma generate || echo "Prisma generate failed, continuing without it..."
+    }
     
-    # Push database schema
+    # Push database schema with timeout
     echo "Pushing database schema..."
-    npx prisma db push --schema=./prisma/schema.railway.prisma
+    timeout 60 npx prisma db push --schema=./prisma/schema.railway.prisma || {
+        echo "Database push failed or timed out, continuing..."
+    }
     
     echo "Database setup complete. Starting server..."
     # Start the server

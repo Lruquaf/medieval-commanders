@@ -7,7 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "start": "node server/index.js",
+    "postinstall": "cd server && npm install",
+    "db:generate": "npx prisma generate",
+    "db:generate:dev": "npx prisma generate --schema=./prisma/schema.dev.prisma",
+    "db:push": "npx prisma db push",
+    "db:push:dev": "npx prisma db push --schema=./prisma/schema.dev.prisma",
+    "db:deploy": "npx prisma generate && npx prisma db push",
+    "db:setup:dev": "npx prisma generate --schema=./prisma/schema.dev.prisma && npx prisma db push --schema=./prisma/schema.dev.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

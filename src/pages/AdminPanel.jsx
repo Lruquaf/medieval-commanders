@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../config/api';
 import Card from '../components/Card';
 import ProposalItem from '../components/ProposalItem';
 import CardForm from '../components/CardForm';
@@ -56,8 +56,8 @@ const AdminPanel = () => {
     try {
       setLoading(true);
       const [cardsResponse, proposalsResponse] = await Promise.all([
-        axios.get('/api/admin/cards'),
-        axios.get('/api/admin/proposals')
+        apiClient.get('/api/admin/cards'),
+        apiClient.get('/api/admin/proposals')
       ]);
       setCards(cardsResponse.data);
       setProposals(proposalsResponse.data);
@@ -71,7 +71,7 @@ const AdminPanel = () => {
 
   const handleApproveProposal = async (proposalId) => {
     try {
-      await axios.post(`/api/admin/proposals/${proposalId}/approve`);
+      await apiClient.post(`/api/admin/proposals/${proposalId}/approve`);
       await fetchData();
     } catch (err) {
       setError('Failed to approve proposal');
@@ -80,7 +80,7 @@ const AdminPanel = () => {
 
   const handleRejectProposal = async (proposalId) => {
     try {
-      await axios.post(`/api/admin/proposals/${proposalId}/reject`);
+      await apiClient.post(`/api/admin/proposals/${proposalId}/reject`);
       await fetchData();
     } catch (err) {
       setError('Failed to reject proposal');
@@ -95,7 +95,7 @@ const AdminPanel = () => {
   const confirmDeleteCard = async () => {
     if (cardToDelete) {
       try {
-        await axios.delete(`/api/admin/cards/${cardToDelete.id}`);
+        await apiClient.delete(`/api/admin/cards/${cardToDelete.id}`);
         await fetchData();
         setShowDeleteModal(false);
         setCardToDelete(null);
@@ -125,9 +125,9 @@ const AdminPanel = () => {
   const handleCardFormSubmit = async (cardData) => {
     try {
       if (editingCard) {
-        await axios.put(`/api/admin/cards/${editingCard.id}`, cardData);
+        await apiClient.put(`/api/admin/cards/${editingCard.id}`, cardData);
       } else {
-        await axios.post('/api/admin/cards', cardData);
+        await apiClient.post('/api/admin/cards', cardData);
       }
       setShowCardForm(false);
       setEditingCard(null);

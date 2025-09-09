@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../config/api';
 
 const CreateProposal = () => {
   const navigate = useNavigate();
@@ -68,7 +68,7 @@ const CreateProposal = () => {
         submitData.append('image', image);
       }
 
-      await axios.post('/api/proposals', submitData, {
+      await apiClient.post('/api/proposals', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

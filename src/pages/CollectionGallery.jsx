@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../config/api';
 import Card from '../components/Card';
 
 const CollectionGallery = () => {
@@ -16,7 +16,7 @@ const CollectionGallery = () => {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/cards');
+      const response = await apiClient.get('/api/cards');
       setCards(response.data);
     } catch (err) {
       setError('Failed to load cards');

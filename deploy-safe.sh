@@ -3,7 +3,7 @@
 # Exit on any error
 set -e
 
-echo "Starting Railway deployment..."
+echo "Starting Railway deployment (safe mode)..."
 
 # Install dependencies
 echo "Installing dependencies..."
@@ -48,20 +48,17 @@ else
         fi
     fi
     
-    # Push database schema with retry logic
-    echo "Pushing database schema..."
-    for i in {1..5}; do
-        echo "Attempt $i/5 to connect to database..."
-        if npx prisma db push --schema=./prisma/schema.railway.prisma; then
-            echo "✓ Database schema pushed successfully"
-            break
-        else
-            echo "✗ Database connection failed, waiting 10 seconds before retry..."
-            sleep 10
-        fi
-    done
+    # Try to push database schema, but don't fail if it doesn't work
+    echo "Attempting to push database schema..."
+    if npx prisma db push --schema=./prisma/schema.railway.prisma; then
+        echo "✓ Database schema pushed successfully"
+    else
+        echo "⚠ Database schema push failed, but continuing with deployment"
+        echo "The server will start without database connection"
+        echo "You can manually run 'npx prisma db push' later when database is ready"
+    fi
 fi
 
-echo "Database setup complete. Starting server..."
+echo "Starting server..."
 # Start the server
 npm start

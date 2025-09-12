@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  // If VITE_API_URL is set, use it
+  // If VITE_API_URL is set, use it (for Netlify deployment)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
@@ -14,7 +14,7 @@ const getApiBaseUrl = () => {
   }
   
   // In production, use Railway backend URL
-  // You'll need to replace this with your actual Railway URL
+  // This will be overridden by VITE_API_URL in Netlify
   return 'https://medieval-commanders-production.up.railway.app';
 };
 

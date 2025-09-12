@@ -10,23 +10,15 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        process.env.FRONTEND_URL, 
-        'https://medieval-commanders.vercel.app',
-        'https://medieval-commanders-git-main-lruquafs-projects.vercel.app',
-        'https://medieval-commanders-q1zz3mdwj-lruquafs-projects.vercel.app',
-        'https://medieval-commanders-no11iwsf4-lruquafs-projects.vercel.app',
-        'https://medieval-commanders-app.vercel.app',
-        'https://medieval-commanders-collection.vercel.app',
-        'https://medieval-commanders-q2shk0jcz-lruquafs-projects.vercel.app',
-        'https://your-frontend-domain.vercel.app', 
-        'https://your-frontend-domain.netlify.app'
-      ].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
-}));
+// CORS configuration - Temporary permissive setup
+const corsOptions = {
+  origin: true, // Allow all origins temporarily
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -326,11 +318,18 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    await initializeDatabase();
+    // Try to initialize database, but don't fail if it's not available
+    try {
+      await initializeDatabase();
+      console.log('Database initialized successfully');
+    } catch (dbError) {
+      console.warn('Database not available, running without database:', dbError.message);
+      console.log('Some features may not work without database connection');
+    }
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log('Database initialized successfully');
+      console.log(`Health check available at: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

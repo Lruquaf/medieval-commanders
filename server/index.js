@@ -64,8 +64,19 @@ const upload = multer({
 // Initialize database connection
 async function initializeDatabase() {
   try {
-    // Test database connection
-    await prisma.$connect();
+    // Check if DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+
+    // Test database connection with timeout
+    console.log('Attempting to connect to database...');
+    await Promise.race([
+      prisma.$connect(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 10000)
+      )
+    ]);
     console.log('Database connected successfully');
   } catch (error) {
     console.error('Error connecting to database:', error);

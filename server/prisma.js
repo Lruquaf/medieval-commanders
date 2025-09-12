@@ -4,12 +4,22 @@ const { PrismaClient } = require('@prisma/client');
 let prisma;
 
 try {
+  // Log DATABASE_URL for debugging (without password)
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const urlParts = new URL(dbUrl);
+    console.log(`Connecting to database: ${urlParts.protocol}//${urlParts.hostname}:${urlParts.port}${urlParts.pathname}`);
+  } else {
+    console.warn('DATABASE_URL environment variable is not set');
+  }
+
   prisma = new PrismaClient({
     datasources: {
       db: {
-        url: process.env.DATABASE_URL
+        url: dbUrl
       }
-    }
+    },
+    log: ['query', 'info', 'warn', 'error']
   });
 } catch (error) {
   console.error('Failed to initialize Prisma Client:', error);

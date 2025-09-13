@@ -28,7 +28,15 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
+# Log DATABASE_URL for debugging (without password)
 echo "DATABASE_URL is set, proceeding with database setup..."
+if [ -n "$DATABASE_URL" ]; then
+    # Extract and log connection details without password
+    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    DB_NAME=$(echo "$DATABASE_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    echo "Connecting to: $DB_HOST:$DB_PORT/$DB_NAME"
+fi
 
 # Generate Prisma client in server directory
 echo "Generating Prisma client in server directory..."
@@ -53,18 +61,56 @@ else
     fi
 fi
 
-# Test database connection before pushing schema
+# Test database connection with retry logic
 echo "Testing database connection..."
-if npx prisma db push --schema=./prisma/schema.railway.prisma --accept-data-loss; then
-    echo "✓ Database connection successful and schema pushed"
-else
-    echo "✗ Database connection failed"
-    echo "Please check:"
-    echo "1. PostgreSQL service is running"
-    echo "2. DATABASE_URL is correct"
-    echo "3. Database credentials are valid"
-    exit 1
-fi
+for i in {1..5}; do
+    echo "Attempt $i/5 to connect to database..."
+    
+    # First try to connect and check if database is accessible
+    if npx prisma db push --schema=./prisma/schema.railway.prisma --accept-data-loss; then
+        echo "✓ Database connection successful and schema pushed"
+        break
+    else
+        echo "✗ Database connection failed on attempt $i"
+        
+        # Log more detailed error information
+        echo "Checking database connectivity..."
+        if command -v psql >/dev/null 2>&1; then
+            echo "Testing with psql..."
+            # Extract connection details for psql test
+            DB_USER=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+            DB_PASS=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
+            
+            if [ -n "$DB_USER" ] && [ -n "$DB_PASS" ] && [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ] && [ -n "$DB_NAME" ]; then
+                echo "Testing connection to $DB_HOST:$DB_PORT/$DB_NAME as user $DB_USER"
+                PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                    echo "✓ Direct psql connection successful"
+                else
+                    echo "✗ Direct psql connection failed"
+                fi
+            fi
+        fi
+        
+        if [ $i -eq 5 ]; then
+            echo "✗ Database connection failed after 5 attempts"
+            echo "Please check:"
+            echo "1. PostgreSQL service is running"
+            echo "2. DATABASE_URL is correct"
+            echo "3. Database credentials are valid"
+            echo "4. Network connectivity to database"
+            echo "5. Database user has proper permissions"
+            echo "Continuing without database connection..."
+            break
+        else
+            echo "✗ Database connection failed, waiting 15 seconds before retry..."
+            sleep 15
+        fi
+    fi
+done
 
 echo "Database setup complete. Starting server..."
 # Start the server

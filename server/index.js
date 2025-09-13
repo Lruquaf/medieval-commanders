@@ -4,19 +4,10 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const prisma = require('./prisma');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
 // Middleware
 // CORS configuration - Temporary permissive setup
@@ -70,18 +61,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer with Cloudinary storage
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'medieval-commanders',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [
-      { width: 400, height: 400, crop: 'fill', gravity: 'face' },
-      { quality: 'auto' }
-    ]
-  }
-});
+// Configure multer for file uploads (in memory for base64 conversion)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -189,17 +170,19 @@ app.post('/api/proposals', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get Cloudinary URL if image was uploaded
-    let imageUrl = null;
+    // Convert image to base64 if provided
+    let imageData = null;
     if (req.file) {
-      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      imageData = `data:${mimeType};base64,${base64}`;
     }
 
     const proposal = await prisma.proposal.create({
       data: {
         name,
         email,
-        image: imageUrl,
+        image: imageData,
         attributes: attributes, // Store as JSON string
         tier,
         description,
@@ -327,16 +310,18 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get Cloudinary URL if image was uploaded
-    let imageUrl = '/placeholder-commander.svg';
+    // Convert image to base64 if provided
+    let imageData = null;
     if (req.file) {
-      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      imageData = `data:${mimeType};base64,${base64}`;
     }
 
     const newCard = await prisma.card.create({
       data: {
         name,
-        image: imageUrl,
+        image: imageData,
         attributes: attributes, // Store as JSON string
         tier,
         description,

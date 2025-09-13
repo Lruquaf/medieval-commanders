@@ -121,6 +121,7 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     console.log('Multer fileFilter called:', file.originalname, file.mimetype);
     if (file.mimetype.startsWith('image/')) {
+      console.log('File accepted:', file.originalname);
       cb(null, true);
     } else {
       console.log('File rejected:', file.originalname, file.mimetype);
@@ -131,6 +132,31 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+// Add multer error handling directly to upload
+const uploadWithErrorHandling = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Multer error in middleware:', err);
+      console.error('Error message:', err.message);
+      console.error('Error name:', err.name);
+      console.error('Error code:', err.code);
+      console.error('Error stack:', err.stack);
+      
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File too large' });
+        }
+        return res.status(400).json({ error: `Multer error: ${err.message}` });
+      }
+      if (err.message === 'Only image files are allowed!') {
+        return res.status(400).json({ error: 'Only image files are allowed!' });
+      }
+      return res.status(400).json({ error: `Upload error: ${err.message}` });
+    }
+    next();
+  });
+};
 
 // Add error handling middleware for multer
 app.use((error, req, res, next) => {
@@ -153,7 +179,7 @@ app.use((error, req, res, next) => {
 });
 
 // Test endpoint for file upload
-app.post('/api/test-upload', upload.single('image'), (req, res) => {
+app.post('/api/test-upload', uploadWithErrorHandling, (req, res) => {
   console.log('=== TEST UPLOAD DEBUG ===');
   console.log('Request body:', req.body);
   console.log('Request file:', req.file);
@@ -270,7 +296,7 @@ app.get('/api/admin/proposals', async (req, res) => {
 });
 
 // Create a new card proposal
-app.post('/api/proposals', upload.single('image'), async (req, res) => {
+app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
   try {
     const { name, email, attributes, tier, description } = req.body;
     
@@ -377,7 +403,7 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
 });
 
 // Admin: Update a card
-app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
+app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
   try {
     console.log('=== CARD UPDATE DEBUG ===');
     console.log('Card ID:', req.params.id);
@@ -432,7 +458,7 @@ app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
 });
 
 // Admin: Create a new card
-app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
+app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
   try {
     console.log('=== CARD CREATION DEBUG ===');
     console.log('Request body:', req.body);

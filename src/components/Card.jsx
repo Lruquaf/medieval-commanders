@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import apiClient from '../config/api';
 
 const Card = ({ card }) => {
   const [showModal, setShowModal] = useState(false);
@@ -15,12 +16,30 @@ const Card = ({ card }) => {
     setShowModal(false);
   };
 
+  // Helper function to get full image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/placeholder-commander.svg';
+    
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // If it starts with /uploads/, prepend the API base URL
+    if (imagePath.startsWith('/uploads/')) {
+      return `${apiClient.defaults.baseURL}${imagePath}`;
+    }
+    
+    // For other cases, return as is
+    return imagePath;
+  };
+
   return (
     <>
       <div className="card" onClick={handleCardClick}>
         <div className="card-image-container">
           <img 
-            src={card.image || '/placeholder-commander.svg'} 
+            src={getImageUrl(card.image)} 
             alt={card.name}
             className="card-image"
             onError={(e) => {
@@ -49,7 +68,7 @@ const Card = ({ card }) => {
             </div>
 
             <img 
-              src={card.image || '/placeholder-commander.svg'} 
+              src={getImageUrl(card.image)} 
               alt={card.name}
               className="modal-image"
               onError={(e) => {

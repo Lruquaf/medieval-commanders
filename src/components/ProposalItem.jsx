@@ -1,4 +1,5 @@
 import React from 'react';
+import apiClient from '../config/api';
 
 const ProposalItem = ({ proposal, onApprove, onReject }) => {
   const getTierClass = (tier) => {
@@ -7,6 +8,24 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
 
   const getStatusClass = (status) => {
     return `status-${status.toLowerCase()}`;
+  };
+
+  // Helper function to get full image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // If it starts with /uploads/, prepend the API base URL
+    if (imagePath.startsWith('/uploads/')) {
+      return `${apiClient.defaults.baseURL}${imagePath}`;
+    }
+    
+    // For other cases, return as is
+    return imagePath;
   };
 
   return (
@@ -23,7 +42,7 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
         <div style={{ gridColumn: 'span 2' }}>
           {proposal.image && (
             <img
-              src={proposal.image}
+              src={getImageUrl(proposal.image)}
               alt={proposal.name}
               style={{
                 width: '100%',

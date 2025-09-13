@@ -78,6 +78,30 @@ app.get('/api/debug/cards', async (req, res) => {
   }
 });
 
+// Test endpoint for file upload
+app.post('/api/test-upload', upload.single('image'), (req, res) => {
+  console.log('=== TEST UPLOAD DEBUG ===');
+  console.log('Request body:', req.body);
+  console.log('Request file:', req.file);
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('File field name:', req.file?.fieldname);
+  console.log('File original name:', req.file?.originalname);
+  console.log('File size:', req.file?.size);
+  console.log('File mimetype:', req.file?.mimetype);
+  
+  res.json({
+    success: true,
+    file: req.file ? {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path
+    } : null,
+    body: req.body
+  });
+});
+
 // Configure multer for file uploads with Cloudinary
 const upload = multer({ 
   storage: storage,
@@ -328,6 +352,15 @@ app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
 // Admin: Create a new card
 app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
   try {
+    console.log('=== CARD CREATION DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('File field name:', req.file?.fieldname);
+    console.log('File original name:', req.file?.originalname);
+    console.log('File size:', req.file?.size);
+    console.log('File mimetype:', req.file?.mimetype);
+    
     const { name, attributes, tier, description } = req.body;
     
     if (!name || !attributes || !tier || !description) {
@@ -341,6 +374,7 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
       console.log('Card image uploaded to Cloudinary:', imageUrl);
     } else {
       console.log('No image uploaded for card');
+      console.log('Multer error:', req.multerError);
     }
 
     const newCard = await prisma.card.create({

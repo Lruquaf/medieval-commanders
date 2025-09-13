@@ -90,8 +90,23 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
       submitData.append('tier', formData.tier);
       submitData.append('description', formData.description);
       
+      console.log('FormData contents:');
+      console.log('Image file:', image);
+      console.log('Image name:', image?.name);
+      console.log('Image size:', image?.size);
+      console.log('Image type:', image?.type);
+      
       if (image) {
         submitData.append('image', image);
+        console.log('Image appended to FormData');
+      } else {
+        console.log('No image to append');
+      }
+
+      // Debug FormData entries
+      console.log('FormData entries:');
+      for (let [key, value] of submitData.entries()) {
+        console.log(key, value);
       }
 
       await onSubmit(submitData);

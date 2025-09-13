@@ -20,6 +20,10 @@ const CollectionGallery = () => {
       const response = await apiClient.get('/api/cards');
       // Ensure response.data is an array
       const cardsData = Array.isArray(response.data) ? response.data : [];
+      
+      console.log('Fetched gallery cards data:', cardsData);
+      console.log('Sample gallery card image:', cardsData[0]?.image);
+      
       setCards(cardsData);
     } catch (err) {
       console.error('Error fetching cards:', err);

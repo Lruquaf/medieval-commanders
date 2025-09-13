@@ -9,6 +9,11 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Cloudinary configuration
+console.log('Cloudinary config check:');
+console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET');
+console.log('CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET');
+console.log('CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET');
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -42,6 +47,35 @@ const storage = new CloudinaryStorage({
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Debug endpoint to check database content
+app.get('/api/debug/cards', async (req, res) => {
+  try {
+    const cards = await prisma.card.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+    
+    const cardsWithImages = cards.map(card => ({
+      id: card.id,
+      name: card.name,
+      image: card.image,
+      imageType: card.image ? (card.image.startsWith('http') ? 'URL' : card.image.startsWith('data:') ? 'Base64' : 'Other') : 'None'
+    }));
+    
+    res.json({
+      totalCards: cards.length,
+      sampleCards: cardsWithImages,
+      cloudinaryConfig: {
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET',
+        apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
+        apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Configure multer for file uploads with Cloudinary
@@ -92,6 +126,9 @@ app.get('/api/cards', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     
+    console.log('Fetched cards:', approvedCards.length);
+    console.log('Sample card image:', approvedCards[0]?.image);
+    
     // Parse attributes JSON for each card
     const cardsWithParsedAttributes = approvedCards.map(card => ({
       ...card,
@@ -100,6 +137,7 @@ app.get('/api/cards', async (req, res) => {
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
+    console.error('Error fetching cards:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -111,6 +149,9 @@ app.get('/api/admin/cards', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     
+    console.log('Fetched admin cards:', allCards.length);
+    console.log('Sample admin card image:', allCards[0]?.image);
+    
     // Parse attributes JSON for each card
     const cardsWithParsedAttributes = allCards.map(card => ({
       ...card,
@@ -119,6 +160,7 @@ app.get('/api/admin/cards', async (req, res) => {
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
+    console.error('Error fetching admin cards:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -155,6 +197,9 @@ app.post('/api/proposals', upload.single('image'), async (req, res) => {
     let imageUrl = null;
     if (req.file) {
       imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
+      console.log('Proposal image uploaded to Cloudinary:', imageUrl);
+    } else {
+      console.log('No image uploaded for proposal');
     }
 
     const proposal = await prisma.proposal.create({
@@ -293,6 +338,9 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
     let imageUrl = null;
     if (req.file) {
       imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
+      console.log('Card image uploaded to Cloudinary:', imageUrl);
+    } else {
+      console.log('No image uploaded for card');
     }
 
     const newCard = await prisma.card.create({

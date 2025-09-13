@@ -63,6 +63,10 @@ const AdminPanel = () => {
       // Ensure response.data is an array
       const cardsData = Array.isArray(cardsResponse.data) ? cardsResponse.data : [];
       const proposalsData = Array.isArray(proposalsResponse.data) ? proposalsResponse.data : [];
+      
+      console.log('Fetched cards data:', cardsData);
+      console.log('Sample card image:', cardsData[0]?.image);
+      
       setCards(cardsData);
       setProposals(proposalsData);
     } catch (err) {

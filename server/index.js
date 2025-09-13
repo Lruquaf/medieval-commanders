@@ -33,14 +33,17 @@ if (isCloudinaryConfigured) {
 const getImageUrl = (file) => {
   if (!file) return null;
   
-  if (isCloudinaryConfigured) {
+  // Check if file has path (Cloudinary) or buffer (memory storage)
+  if (file.path) {
     return file.path; // Cloudinary URL
-  } else {
+  } else if (file.buffer) {
     // Fallback: convert to base64
     const base64 = file.buffer.toString('base64');
     const mimeType = file.mimetype;
     return `data:${mimeType};base64,${base64}`;
   }
+  
+  return null;
 };
 
 // Middleware
@@ -56,16 +59,27 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Cloudinary storage configuration for multer
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'medieval-commanders',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [
-      { width: 800, height: 600, crop: 'fill', quality: 'auto' }
-    ]
+let storage;
+try {
+  if (isCloudinaryConfigured) {
+    storage = new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'medieval-commanders',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        transformation: [
+          { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+        ]
+      }
+    });
+    console.log('✅ Cloudinary storage configured successfully');
+  } else {
+    throw new Error('Cloudinary not configured');
   }
-});
+} catch (error) {
+  console.error('❌ Cloudinary storage failed, using memory storage:', error.message);
+  storage = multer.memoryStorage();
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -121,10 +135,16 @@ const upload = multer({
 // Add error handling middleware for multer
 app.use((error, req, res, next) => {
   console.error('Multer error:', error);
+  console.error('Error message:', error.message);
+  console.error('Error stack:', error.stack);
+  console.error('Error name:', error.name);
+  console.error('Error code:', error.code);
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'File too large' });
     }
+    return res.status(400).json({ error: `Multer error: ${error.message}` });
   }
   if (error.message === 'Only image files are allowed!') {
     return res.status(400).json({ error: 'Only image files are allowed!' });

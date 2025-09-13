@@ -61,16 +61,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}-${file.originalname}`;
-    cb(null, uniqueName);
-  }
-});
+// Configure multer for file uploads (in memory for base64 conversion)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -178,11 +170,19 @@ app.post('/api/proposals', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Convert image to base64 if provided
+    let imageData = null;
+    if (req.file) {
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      imageData = `data:${mimeType};base64,${base64}`;
+    }
+
     const proposal = await prisma.proposal.create({
       data: {
         name,
         email,
-        image: req.file ? `/uploads/${req.file.filename}` : null,
+        image: imageData,
         attributes: attributes, // Store as JSON string
         tier,
         description,
@@ -310,10 +310,18 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Convert image to base64 if provided
+    let imageData = '/placeholder-commander.svg';
+    if (req.file) {
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      imageData = `data:${mimeType};base64,${base64}`;
+    }
+
     const newCard = await prisma.card.create({
       data: {
         name,
-        image: req.file ? `/uploads/${req.file.filename}` : '/uploads/default-commander.jpg',
+        image: imageData,
         attributes: attributes, // Store as JSON string
         tier,
         description,

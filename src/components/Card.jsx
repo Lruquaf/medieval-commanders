@@ -16,9 +16,14 @@ const Card = ({ card }) => {
     setShowModal(false);
   };
 
-  // Helper function to get full image URL
+  // Helper function to get image URL
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/placeholder-commander.svg';
+    
+    // If it's a base64 data URL, return as is
+    if (imagePath.startsWith('data:')) {
+      return imagePath;
+    }
     
     // If it's already a full URL, return as is
     if (imagePath.startsWith('http')) {

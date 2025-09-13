@@ -17,6 +17,22 @@ cp prisma/schema.railway.prisma server/schema.prisma
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
 
+# Verify Cloudinary packages are installed
+echo "Verifying Cloudinary packages..."
+if [ -d "server/node_modules/cloudinary" ]; then
+    echo "✓ Cloudinary package found"
+else
+    echo "✗ Cloudinary package not found, installing..."
+    cd server && npm install cloudinary multer-storage-cloudinary && cd ..
+fi
+
+if [ -d "server/node_modules/multer-storage-cloudinary" ]; then
+    echo "✓ multer-storage-cloudinary package found"
+else
+    echo "✗ multer-storage-cloudinary package not found, installing..."
+    cd server && npm install multer-storage-cloudinary && cd ..
+fi
+
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "ERROR: DATABASE_URL environment variable is not set!"

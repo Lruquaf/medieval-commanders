@@ -25,7 +25,7 @@ const Card = ({ card }) => {
       return imagePath;
     }
     
-    // If it's already a full URL, return as is
+    // If it's already a full URL (Cloudinary or other), return as is
     if (imagePath.startsWith('http')) {
       return imagePath;
     }

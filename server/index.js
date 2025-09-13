@@ -105,15 +105,31 @@ app.get('/api/debug/cards', async (req, res) => {
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
+    console.log('Multer fileFilter called:', file.originalname, file.mimetype);
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
+      console.log('File rejected:', file.originalname, file.mimetype);
       cb(new Error('Only image files are allowed!'), false);
     }
   },
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
+});
+
+// Add error handling middleware for multer
+app.use((error, req, res, next) => {
+  console.error('Multer error:', error);
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large' });
+    }
+  }
+  if (error.message === 'Only image files are allowed!') {
+    return res.status(400).json({ error: 'Only image files are allowed!' });
+  }
+  next(error);
 });
 
 // Test endpoint for file upload
@@ -126,6 +142,7 @@ app.post('/api/test-upload', upload.single('image'), (req, res) => {
   console.log('File original name:', req.file?.originalname);
   console.log('File size:', req.file?.size);
   console.log('File mimetype:', req.file?.mimetype);
+  console.log('Multer error:', req.multerError);
   
   res.json({
     success: true,
@@ -136,7 +153,8 @@ app.post('/api/test-upload', upload.single('image'), (req, res) => {
       size: req.file.size,
       path: req.file.path
     } : null,
-    body: req.body
+    body: req.body,
+    multerError: req.multerError
   });
 });
 
@@ -404,6 +422,7 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
     console.log('File original name:', req.file?.originalname);
     console.log('File size:', req.file?.size);
     console.log('File mimetype:', req.file?.mimetype);
+    console.log('Multer error:', req.multerError);
     
     const { name, attributes, tier, description } = req.body;
     

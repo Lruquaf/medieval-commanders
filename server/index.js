@@ -78,6 +78,21 @@ app.get('/api/debug/cards', async (req, res) => {
   }
 });
 
+// Configure multer for file uploads with Cloudinary
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
 // Test endpoint for file upload
 app.post('/api/test-upload', upload.single('image'), (req, res) => {
   console.log('=== TEST UPLOAD DEBUG ===');
@@ -100,21 +115,6 @@ app.post('/api/test-upload', upload.single('image'), (req, res) => {
     } : null,
     body: req.body
   });
-});
-
-// Configure multer for file uploads with Cloudinary
-const upload = multer({ 
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  },
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
 });
 
 // Initialize database connection

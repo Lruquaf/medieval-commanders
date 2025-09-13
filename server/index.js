@@ -14,11 +14,34 @@ console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' 
 console.log('CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET');
 console.log('CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+                               process.env.CLOUDINARY_API_KEY && 
+                               process.env.CLOUDINARY_API_SECRET;
+
+if (isCloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+  console.log('✅ Cloudinary configured successfully');
+} else {
+  console.log('❌ Cloudinary not configured - using fallback storage');
+}
+
+// Helper function to get image URL based on storage type
+const getImageUrl = (file) => {
+  if (!file) return null;
+  
+  if (isCloudinaryConfigured) {
+    return file.path; // Cloudinary URL
+  } else {
+    // Fallback: convert to base64
+    const base64 = file.buffer.toString('base64');
+    const mimeType = file.mimetype;
+    return `data:${mimeType};base64,${base64}`;
+  }
+};
 
 // Middleware
 // CORS configuration - Temporary permissive setup
@@ -217,11 +240,10 @@ app.post('/api/proposals', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get Cloudinary URL if image was uploaded
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
-      console.log('Proposal image uploaded to Cloudinary:', imageUrl);
+    // Get image URL based on storage type
+    const imageUrl = getImageUrl(req.file);
+    if (imageUrl) {
+      console.log('Proposal image processed:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
     } else {
       console.log('No image uploaded for proposal');
     }
@@ -319,6 +341,16 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
 // Admin: Update a card
 app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
   try {
+    console.log('=== CARD UPDATE DEBUG ===');
+    console.log('Card ID:', req.params.id);
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('File field name:', req.file?.fieldname);
+    console.log('File original name:', req.file?.originalname);
+    console.log('File size:', req.file?.size);
+    console.log('File mimetype:', req.file?.mimetype);
+    
     const { id } = req.params;
     const { name, attributes, tier, description } = req.body;
     
@@ -327,12 +359,19 @@ app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
     if (attributes) updateData.attributes = attributes; // Store as JSON string
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
-    if (req.file) updateData.image = req.file.path; // Cloudinary URL
+    if (req.file) {
+      updateData.image = getImageUrl(req.file);
+      console.log('Card image updated:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
+    }
+
+    console.log('Update data:', updateData);
 
     const updatedCard = await prisma.card.update({
       where: { id },
       data: updateData
     });
+
+    console.log('Updated card:', updatedCard);
 
     // Parse attributes for response
     const cardWithParsedAttributes = {
@@ -342,6 +381,11 @@ app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
 
     res.json(cardWithParsedAttributes);
   } catch (error) {
+    console.error('Card update error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Card not found' });
     }
@@ -367,11 +411,10 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get Cloudinary URL if image was uploaded
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
-      console.log('Card image uploaded to Cloudinary:', imageUrl);
+    // Get image URL based on storage type
+    const imageUrl = getImageUrl(req.file);
+    if (imageUrl) {
+      console.log('Card image processed:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
     } else {
       console.log('No image uploaded for card');
       console.log('Multer error:', req.multerError);

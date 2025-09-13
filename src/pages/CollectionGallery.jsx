@@ -18,7 +18,9 @@ const CollectionGallery = () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.get('/api/cards');
-      setCards(response.data);
+      // Ensure response.data is an array
+      const cardsData = Array.isArray(response.data) ? response.data : [];
+      setCards(cardsData);
     } catch (err) {
       console.error('Error fetching cards:', err);
       setError('Failed to load cards. Using sample data...');
@@ -47,14 +49,14 @@ const CollectionGallery = () => {
     }
   };
 
-  const filteredCards = cards.filter(card => {
+  const filteredCards = (cards || []).filter(card => {
     if (filter === 'all') return true;
     return card.tier.toLowerCase() === filter.toLowerCase();
   });
 
   const getTierCounts = () => {
-    const counts = { all: cards.length };
-    cards.forEach(card => {
+    const counts = { all: (cards || []).length };
+    (cards || []).forEach(card => {
       counts[card.tier.toLowerCase()] = (counts[card.tier.toLowerCase()] || 0) + 1;
     });
     return counts;

@@ -60,8 +60,11 @@ const AdminPanel = () => {
         apiClient.get('/api/admin/cards'),
         apiClient.get('/api/admin/proposals')
       ]);
-      setCards(cardsResponse.data);
-      setProposals(proposalsResponse.data);
+      // Ensure response.data is an array
+      const cardsData = Array.isArray(cardsResponse.data) ? cardsResponse.data : [];
+      const proposalsData = Array.isArray(proposalsResponse.data) ? proposalsResponse.data : [];
+      setCards(cardsData);
+      setProposals(proposalsData);
     } catch (err) {
       console.error('Error fetching admin data:', err);
       setError('Failed to load admin data. Using sample data...');
@@ -291,7 +294,7 @@ const AdminPanel = () => {
             className={`btn ${activeTab === 'proposals' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ margin: '0', borderRadius: '6px' }}
           >
-            Proposals ({proposals.filter(p => p.status === 'pending').length})
+            Proposals ({(proposals || []).filter(p => p.status === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('cards')}

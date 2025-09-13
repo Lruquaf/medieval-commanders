@@ -1,13 +1,19 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
 const prisma = require('./prisma');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Middleware
 // CORS configuration - Temporary permissive setup
@@ -21,49 +27,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Serve uploaded files with proper error handling
-app.use('/uploads', express.static(uploadsDir, {
-  setHeaders: (res, path) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+// Cloudinary storage configuration for multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'medieval-commanders',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [
+      { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+    ]
   }
-}));
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Debug endpoint for uploads directory
-app.get('/api/debug/uploads', (req, res) => {
-  try {
-    const files = fs.readdirSync(uploadsDir);
-    res.json({
-      uploadsDir,
-      files,
-      exists: fs.existsSync(uploadsDir),
-      absolutePath: path.resolve(uploadsDir)
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message, uploadsDir });
-  }
-});
-
-// Additional uploads directory check (redundant but safe)
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for file uploads (in memory for base64 conversion)
-const storage = multer.memoryStorage();
-
+// Configure multer for file uploads with Cloudinary
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
@@ -170,19 +151,17 @@ app.post('/api/proposals', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Convert image to base64 if provided
-    let imageData = null;
+    // Get Cloudinary URL if image was uploaded
+    let imageUrl = null;
     if (req.file) {
-      const base64 = req.file.buffer.toString('base64');
-      const mimeType = req.file.mimetype;
-      imageData = `data:${mimeType};base64,${base64}`;
+      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
     }
 
     const proposal = await prisma.proposal.create({
       data: {
         name,
         email,
-        image: imageData,
+        image: imageUrl,
         attributes: attributes, // Store as JSON string
         tier,
         description,
@@ -279,7 +258,7 @@ app.put('/api/admin/cards/:id', upload.single('image'), async (req, res) => {
     if (attributes) updateData.attributes = attributes; // Store as JSON string
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
-    if (req.file) updateData.image = `/uploads/${req.file.filename}`;
+    if (req.file) updateData.image = req.file.path; // Cloudinary URL
 
     const updatedCard = await prisma.card.update({
       where: { id },
@@ -310,18 +289,16 @@ app.post('/api/admin/cards', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Convert image to base64 if provided
-    let imageData = null;
+    // Get Cloudinary URL if image was uploaded
+    let imageUrl = null;
     if (req.file) {
-      const base64 = req.file.buffer.toString('base64');
-      const mimeType = req.file.mimetype;
-      imageData = `data:${mimeType};base64,${base64}`;
+      imageUrl = req.file.path; // Cloudinary returns the URL in req.file.path
     }
 
     const newCard = await prisma.card.create({
       data: {
         name,
-        image: imageData,
+        image: imageUrl,
         attributes: attributes, // Store as JSON string
         tier,
         description,

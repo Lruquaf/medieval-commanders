@@ -20,7 +20,7 @@ const Card = ({ card }) => {
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/placeholder-commander.svg';
     
-    // If it's a base64 data URL, return as is
+    // If it's a base64 data URL (legacy), return as is
     if (imagePath.startsWith('data:')) {
       return imagePath;
     }
@@ -30,13 +30,8 @@ const Card = ({ card }) => {
       return imagePath;
     }
     
-    // If it starts with /uploads/, prepend the API base URL
-    if (imagePath.startsWith('/uploads/')) {
-      return `${apiClient.defaults.baseURL}${imagePath}`;
-    }
-    
-    // For other cases, return as is
-    return imagePath;
+    // For any other cases, return placeholder
+    return '/placeholder-commander.svg';
   };
 
   return (

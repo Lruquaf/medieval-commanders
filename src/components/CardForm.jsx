@@ -18,6 +18,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     description: ''
   });
   const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,6 +39,10 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         tier: card.tier || 'Common',
         description: card.description || ''
       });
+      // Set current image preview if editing
+      if (card.image) {
+        setImagePreview(card.image);
+      }
     }
   }, [card]);
 
@@ -64,6 +69,12 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     const file = e.target.files[0];
     if (file) {
       setImage(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -120,6 +131,34 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
 
         <div className="form-group">
           <label htmlFor="image" className="form-label">Commander Image</label>
+          
+          {/* Image Preview */}
+          {imagePreview && (
+            <div style={{ 
+              marginBottom: '1rem', 
+              textAlign: 'center',
+              padding: '1rem',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(244, 208, 63, 0.1) 100%)',
+              borderRadius: '8px',
+              border: '2px solid rgba(212, 175, 55, 0.3)'
+            }}>
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  border: '2px solid rgba(212, 175, 55, 0.5)'
+                }}
+              />
+              <p style={{ marginTop: '0.5rem', color: '#d4af37', fontSize: '0.9rem' }}>
+                {image ? `New: ${image.name}` : 'Current Image'}
+              </p>
+            </div>
+          )}
+          
           <div className="file-input" onClick={() => document.getElementById('image').click()}>
             <input
               type="file"
@@ -132,7 +171,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
               {image ? (
                 <p>Selected: {image.name}</p>
               ) : card?.image ? (
-                <p>Current: {card.image.split('/').pop()}</p>
+                <p>Click to change current image</p>
               ) : (
                 <p>Click to select an image or drag and drop</p>
               )}

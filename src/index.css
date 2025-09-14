@@ -223,6 +223,77 @@ body::before {
   margin: 2rem 0;
 }
 
+/* Consistent card styling for all grids - square images */
+.card-grid .card .card-image-container {
+  height: 200px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-grid .card .card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Admin card wrapper and actions */
+.admin-card-wrapper {
+  position: relative;
+  transition: transform 0.3s ease;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.admin-card-wrapper:hover {
+  transform: translateY(-2px);
+}
+
+.admin-card-actions {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.admin-card-wrapper:hover .admin-card-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.admin-action-btn {
+  padding: 0.4rem 0.8rem !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-action-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
 .card {
   background: 
     linear-gradient(145deg, rgba(139, 69, 19, 0.9) 0%, rgba(101, 67, 33, 0.9) 50%, rgba(62, 39, 35, 0.9) 100%);
@@ -404,8 +475,85 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 2rem;
+}
+
+/* Ensure modals always appear above everything else */
+.modal-overlay * {
+  z-index: inherit;
+}
+
+/* Cursor styles for clickable elements */
+.card,
+button,
+.btn,
+.logo,
+.nav-links a,
+.file-input,
+.modal-close,
+.admin-action-btn,
+input[type="range"],
+input[type="file"],
+select,
+.card-tier,
+.modal-tier {
+  cursor: pointer;
+}
+
+.card:hover,
+.admin-card-wrapper:hover .card {
+  cursor: pointer;
+}
+
+/* Disabled elements */
+button:disabled,
+.btn:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* Text inputs and textareas */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  cursor: text;
+}
+
+/* Loading states */
+.loading {
+  cursor: wait;
+}
+
+/* Filter buttons and tabs */
+.filter-btn,
+.tab-btn,
+.nav-tab {
+  cursor: pointer;
+}
+
+/* Modal and overlay interactions */
+.modal-overlay {
+  cursor: pointer;
+}
+
+.modal-content {
+  cursor: default;
+}
+
+/* Links and anchors */
+a,
+a:hover,
+a:visited {
+  cursor: pointer;
+}
+
+/* Image containers that are clickable */
+.card-image-container,
+.card-image {
+  cursor: pointer;
 }
 
 .modal-content {
@@ -413,9 +561,9 @@ body::before {
     linear-gradient(145deg, rgba(139, 69, 19, 0.98) 0%, rgba(101, 67, 33, 0.98) 50%, rgba(62, 39, 35, 0.98) 100%);
   border-radius: 20px;
   padding: 3rem;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
+  max-width: 700px;
+  width: 90%;
+  max-height: 85vh;
   overflow-y: auto;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.6),
@@ -423,6 +571,7 @@ body::before {
     0 0 0 3px rgba(212, 175, 55, 0.3);
   border: 2px solid rgba(212, 175, 55, 0.4);
   position: relative;
+  z-index: 10000;
 }
 
 .modal-header {
@@ -459,8 +608,8 @@ body::before {
 }
 
 .modal-image {
-  max-width: 500px;
-  max-height: 500px;
+  max-width: 350px;
+  max-height: 350px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -724,6 +873,7 @@ input[type="range"]::-moz-range-thumb:hover {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 20px;
+  position: relative;
 }
 
 /* Proposal attribute styling */
@@ -765,6 +915,19 @@ input[type="range"]::-moz-range-thumb:hover {
     inset 0 1px 0 rgba(212, 175, 55, 0.3),
     0 0 0 2px rgba(212, 175, 55, 0.2);
   border: 2px solid rgba(212, 175, 55, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+/* Admin section card grid styling */
+.admin-section .card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+  justify-content: center;
+  justify-items: stretch;
+  align-items: start;
 }
 
 .section-title {

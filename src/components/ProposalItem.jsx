@@ -41,19 +41,29 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
         {/* Image Section - 2 columns */}
         <div style={{ gridColumn: 'span 2' }}>
           {proposal.image && (
-            <img
-              src={getImageUrl(proposal.image)}
-              alt={proposal.name}
-              style={{
-                width: '100%',
-                maxHeight: '200px',
-                objectFit: 'contain',
-                borderRadius: '8px',
-                border: '2px solid rgba(212, 175, 55, 0.3)',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.1))'
-              }}
-            />
+            <div style={{
+              width: '100%',
+              aspectRatio: '1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              border: '2px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.1))',
+              overflow: 'hidden'
+            }}>
+              <img
+                src={getImageUrl(proposal.image)}
+                alt={proposal.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '6px'
+                }}
+              />
+            </div>
           )}
         </div>
 

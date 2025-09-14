@@ -282,7 +282,7 @@ const AdminPanel = () => {
         </div>
       </header>
 
-      <div className="admin-container">
+      <div className="container">
         <div style={{ textAlign: 'center', margin: '2rem 0' }}>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'white' }}>
             Admin Panel
@@ -368,26 +368,24 @@ const AdminPanel = () => {
           ) : (
             <div className="card-grid">
               {cards.map(card => (
-                <div key={card.id} style={{ position: 'relative' }}>
+                <div key={card.id} className="admin-card-wrapper">
                   <Card card={card} />
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '10px', 
-                    right: '10px', 
-                    display: 'flex', 
-                    gap: '0.5rem' 
-                  }}>
+                  <div className="admin-card-actions">
                     <button
-                      onClick={() => handleEditCard(card)}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.5rem', fontSize: '0.8rem' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditCard(card);
+                      }}
+                      className="btn btn-secondary admin-action-btn"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteCard(card)}
-                      className="btn btn-danger"
-                      style={{ padding: '0.5rem', fontSize: '0.8rem' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCard(card);
+                      }}
+                      className="btn btn-danger admin-action-btn"
                     >
                       Delete
                     </button>

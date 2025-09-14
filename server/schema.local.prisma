@@ -1,0 +1,42 @@
+// Local development Prisma schema with SQLite
+// This is separate from production schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./node_modules/.prisma/client-local"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Card {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  image       String?
+  attributes  String   // JSON string for attributes
+  tier        String
+  description String
+  status      String   @default("approved")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("cards")
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  image       String?
+  attributes  String   // JSON string for attributes
+  tier        String
+  description String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("proposals")
+}

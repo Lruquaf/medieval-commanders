@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import apiClient from '../config/api';
 
 const Card = ({ card }) => {
@@ -64,7 +65,7 @@ const Card = ({ card }) => {
         </div>
       </div>
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={handleCloseModal}>×</button>
@@ -122,7 +123,8 @@ const Card = ({ card }) => {
 
             <p className="modal-description">{card.description}</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

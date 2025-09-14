@@ -183,11 +183,14 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
                 src={imagePreview} 
                 alt="Preview" 
                 style={{ 
-                  maxWidth: '200px', 
-                  maxHeight: '200px', 
-                  objectFit: 'cover',
+                  maxWidth: '300px', 
+                  maxHeight: '300px', 
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain',
                   borderRadius: '8px',
-                  border: '2px solid rgba(212, 175, 55, 0.5)'
+                  border: '2px solid rgba(212, 175, 55, 0.5)',
+                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(139, 69, 19, 0.05))'
                 }}
               />
               <p style={{ marginTop: '0.5rem', color: '#d4af37', fontSize: '0.9rem' }}>

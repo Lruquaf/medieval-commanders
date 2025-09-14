@@ -266,20 +266,24 @@ body::before {
 
 .card-image-container {
   width: 100%;
-  aspect-ratio: 1;
+  height: 250px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, #3e2723, #5d4037);
   border-bottom: 3px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  top: 0;
-  left: 0;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
 }
 
 .card-image::after {
@@ -455,13 +459,16 @@ body::before {
 }
 
 .modal-image {
-  width: 400px;
-  height: 400px;
-  object-fit: cover;
+  max-width: 500px;
+  max-height: 500px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   border-radius: 12px;
   margin: 0 auto 2rem auto;
   border: 3px solid rgba(212, 175, 55, 0.3);
   display: block;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.1));
 }
 
 .modal-attributes {

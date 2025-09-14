@@ -76,7 +76,7 @@ try {
         folder: 'medieval-commanders',
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
         transformation: [
-          { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+          { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
         ]
       }
     });

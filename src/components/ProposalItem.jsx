@@ -46,12 +46,12 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
               alt={proposal.name}
               style={{
                 width: '100%',
-                height: '100%',
-                aspectRatio: '1 / 1',
-                objectFit: 'cover',
+                maxHeight: '200px',
+                objectFit: 'contain',
                 borderRadius: '8px',
                 border: '2px solid rgba(212, 175, 55, 0.3)',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.1))'
               }}
             />
           )}

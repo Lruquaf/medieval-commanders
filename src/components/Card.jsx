@@ -16,13 +16,22 @@ const Card = ({ card }) => {
     setShowModal(false);
   };
 
-  // Helper function to get image URL
-  const getImageUrl = (imagePath) => {
+  // Helper function to get image URL with optional transformations
+  const getImageUrl = (imagePath, transformations = '') => {
     if (!imagePath) return '/placeholder-commander.svg';
     
     // If it's a base64 data URL (legacy), return as is
     if (imagePath.startsWith('data:')) {
       return imagePath;
+    }
+    
+    // If it's a Cloudinary URL and transformations are requested
+    if (imagePath.startsWith('http') && imagePath.includes('cloudinary.com') && transformations) {
+      // Insert transformations into Cloudinary URL
+      const parts = imagePath.split('/upload/');
+      if (parts.length === 2) {
+        return `${parts[0]}/upload/${transformations}/${parts[1]}`;
+      }
     }
     
     // If it's already a full URL (Cloudinary or other), return as is

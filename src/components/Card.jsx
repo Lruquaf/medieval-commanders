@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import apiClient from '../config/api';
 
-const Card = ({ card }) => {
+const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
   const [showModal, setShowModal] = useState(false);
 
   const getTierClass = (tier) => {
@@ -69,6 +69,34 @@ const Card = ({ card }) => {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={handleCloseModal}>×</button>
+            
+            {/* Admin action buttons - top left corner */}
+            {isAdmin && (
+              <div className="modal-admin-actions">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowModal(false);
+                    onEdit && onEdit(card);
+                  }}
+                  className="btn btn-secondary modal-admin-btn"
+                  title="Edit Card"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowModal(false);
+                    onDelete && onDelete(card);
+                  }}
+                  className="btn btn-danger modal-admin-btn"
+                  title="Delete Card"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
             
             <div className="modal-header">
               <h2 className="modal-title">{card.name}</h2>

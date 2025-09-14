@@ -37,45 +37,29 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-        {/* Image Section - 2 columns */}
-        <div style={{ gridColumn: 'span 2' }}>
+      <div className="proposal-content">
+        {/* Image Section */}
+        <div className="proposal-image-section">
           {proposal.image && (
-            <div style={{
-              width: '100%',
-              aspectRatio: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '8px',
-              border: '2px solid rgba(212, 175, 55, 0.3)',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.1))',
-              overflow: 'hidden'
-            }}>
+            <div className="proposal-image-container">
               <img
                 src={getImageUrl(proposal.image)}
                 alt={proposal.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '6px'
-                }}
+                className="proposal-image"
               />
             </div>
           )}
         </div>
 
-        {/* Features Section - 2 columns */}
-        <div style={{ gridColumn: 'span 2' }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <div className={`card-tier ${getTierClass(proposal.tier)}`} style={{ display: 'inline-block' }}>
+        {/* Features Section */}
+        <div className="proposal-features-section">
+          <div className="proposal-tier-section">
+            <div className={`card-tier ${getTierClass(proposal.tier)}`}>
               {proposal.tier}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <div className="proposal-attributes">
             <div className="attribute">
               <span className="attribute-name">Strength</span>
               <span className="attribute-value">{proposal.attributes.strength}</span>
@@ -111,9 +95,9 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
           </div>
         </div>
 
-        {/* Description Section - 3 columns */}
-        <div style={{ gridColumn: 'span 3' }}>
-          <p className="card-description" style={{ margin: 0, lineHeight: '1.6' }}>{proposal.description}</p>
+        {/* Description Section */}
+        <div className="proposal-description-section">
+          <p className="proposal-description">{proposal.description}</p>
         </div>
       </div>
 

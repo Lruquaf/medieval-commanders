@@ -1,34 +1,58 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const location = useLocation();
   const isAdminPage = location.pathname === '/admin';
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
 
   return (
     <header className="header">
       <div className="container">
         <nav className="nav">
-          <Link to="/" className="logo">
+          <Link to="/" className="logo" onClick={closeMenu}>
             ⚔️ Medieval Commanders
           </Link>
-          <ul className="nav-links">
+          
+          {/* Hamburger menu button */}
+          <button 
+            className={`hamburger ${isMenuOpen ? 'active' : ''}`}
+            onClick={toggleMenu}
+            aria-label="Toggle navigation menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <ul className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
             {!isAdminPage && (
               <li>
-                <Link to="/">Collection</Link>
+                <Link to="/" onClick={closeMenu}>Collection</Link>
               </li>
             )}
             {!isAdminPage && (
               <li>
-                <Link to="/propose">Propose Card</Link>
+                <Link to="/propose" onClick={closeMenu}>Propose Card</Link>
               </li>
             )}
             {!isAdminPage && (
               <li>
-                <Link to="/admin">Admin Panel</Link>
+                <Link to="/admin" onClick={closeMenu}>Admin Panel</Link>
               </li>
             )}
           </ul>
+          
+          {/* Overlay for mobile menu */}
+          {isMenuOpen && <div className="nav-overlay" onClick={closeMenu}></div>}
         </nav>
       </div>
     </header>

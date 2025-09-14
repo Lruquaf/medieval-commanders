@@ -182,14 +182,14 @@ const CreateProposal = () => {
 
         <div className="form-group">
           <label className="form-label">Attributes *</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+          <div className="attributes-grid">
             {Object.entries(formData.attributes).map(([attr, value]) => (
-              <div key={attr} style={{ padding: '1rem', background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(244, 208, 63, 0.15) 100%)', borderRadius: '8px', border: '2px solid rgba(212, 175, 55, 0.3)', boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)' }}>
-                <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-                  <div style={{ textTransform: 'capitalize', fontWeight: '600', color: '#d4af37', fontSize: '0.9rem', marginBottom: '0.1rem' }}>
+              <div key={attr} className="attribute-input">
+                <div className="attribute-header">
+                  <div className="attribute-name">
                     {attr}
                   </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#f4d03f', textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)' }}>
+                  <div className="attribute-value">
                     {value}
                   </div>
                 </div>
@@ -201,9 +201,9 @@ const CreateProposal = () => {
                   max="100"
                   value={value}
                   onChange={handleInputChange}
-                  style={{ width: '100%', marginBottom: '0.5rem' }}
+                  className="attribute-range"
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#e6d7c3' }}>
+                <div className="attribute-scale">
                   <span>0</span>
                   <span>50</span>
                   <span>100</span>

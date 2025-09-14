@@ -99,13 +99,12 @@ const CollectionGallery = () => {
         </p>
         
         {/* Filter buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <div className="filter-buttons">
           {Object.entries(tierCounts).map(([tier, count]) => (
             <button
               key={tier}
               onClick={() => setFilter(tier)}
-              className={`btn ${filter === tier ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ textTransform: 'capitalize' }}
+              className={`btn ${filter === tier ? 'btn-primary' : 'btn-secondary'} filter-btn`}
             >
               {tier} ({count})
             </button>

@@ -299,19 +299,17 @@ const AdminPanel = () => {
       )}
 
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', background: 'linear-gradient(135deg, rgba(139, 69, 19, 0.3) 0%, rgba(101, 67, 33, 0.3) 100%)', borderRadius: '8px', padding: '4px', border: '2px solid rgba(212, 175, 55, 0.2)' }}>
+      <div className="admin-tabs-container">
+        <div className="admin-tabs">
           <button
             onClick={() => setActiveTab('proposals')}
-            className={`btn ${activeTab === 'proposals' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ margin: '0', borderRadius: '6px' }}
+            className={`btn ${activeTab === 'proposals' ? 'btn-primary' : 'btn-secondary'} admin-tab-btn`}
           >
             Proposals ({(proposals || []).filter(p => p.status === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('cards')}
-            className={`btn ${activeTab === 'cards' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ margin: '0', borderRadius: '6px' }}
+            className={`btn ${activeTab === 'cards' ? 'btn-primary' : 'btn-secondary'} admin-tab-btn`}
           >
             Cards ({cards.length})
           </button>
@@ -354,7 +352,7 @@ const AdminPanel = () => {
       {/* Cards Tab */}
       {activeTab === 'cards' && (
         <div className="admin-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div className="admin-section-header">
             <h2 className="section-title">Manage Cards</h2>
             <button onClick={handleCreateCard} className="btn btn-primary">
               Create New Card
@@ -369,27 +367,12 @@ const AdminPanel = () => {
             <div className="card-grid">
               {cards.map(card => (
                 <div key={card.id} className="admin-card-wrapper">
-                  <Card card={card} />
-                  <div className="admin-card-actions">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditCard(card);
-                      }}
-                      className="btn btn-secondary admin-action-btn"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCard(card);
-                      }}
-                      className="btn btn-danger admin-action-btn"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <Card 
+                    card={card} 
+                    isAdmin={true}
+                    onEdit={handleEditCard}
+                    onDelete={handleDeleteCard}
+                  />
                 </div>
               ))}
             </div>

@@ -10,23 +10,31 @@ const PORT = process.env.PORT || 5001;
 
 // Cloudinary configuration
 console.log('Cloudinary config check:');
-console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET');
+console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? `SET (${process.env.CLOUDINARY_CLOUD_NAME})` : 'NOT SET');
 console.log('CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET');
 console.log('CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET');
 
-const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
-                               process.env.CLOUDINARY_API_KEY && 
-                               process.env.CLOUDINARY_API_SECRET;
+// Clean up environment variables (remove any whitespace)
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+const isCloudinaryConfigured = cloudName && apiKey && apiSecret;
 
 if (isCloudinaryConfigured) {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
   });
-  console.log('✅ Cloudinary configured successfully');
+  console.log('✅ Cloudinary configured successfully with cloud_name:', cloudName);
 } else {
   console.log('❌ Cloudinary not configured - using fallback storage');
+  console.log('Missing values:', {
+    cloud_name: !cloudName,
+    api_key: !apiKey,
+    api_secret: !apiSecret
+  });
 }
 
 // Helper function to get image URL based on storage type
@@ -98,16 +106,24 @@ app.get('/api/debug/cards', async (req, res) => {
       id: card.id,
       name: card.name,
       image: card.image,
-      imageType: card.image ? (card.image.startsWith('http') ? 'URL' : card.image.startsWith('data:') ? 'Base64' : 'Other') : 'None'
+      imageType: card.image ? (card.image.startsWith('http') ? 'URL' : card.image.startsWith('data:') ? 'Base64' : 'Other') : 'None',
+      imageLength: card.image ? card.image.length : 0
     }));
     
     res.json({
       totalCards: cards.length,
       sampleCards: cardsWithImages,
       cloudinaryConfig: {
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'NOT SET',
-        apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
-        apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
+        configured: isCloudinaryConfigured,
+        cloudName: cloudName || 'NOT SET',
+        apiKey: apiKey ? 'SET' : 'NOT SET',
+        apiSecret: apiSecret ? 'SET' : 'NOT SET',
+        storageType: isCloudinaryConfigured ? 'Cloudinary' : 'Memory (Base64)'
+      },
+      serverInfo: {
+        nodeEnv: process.env.NODE_ENV,
+        port: PORT,
+        timestamp: new Date().toISOString()
       }
     });
   } catch (error) {
@@ -145,13 +161,29 @@ const uploadWithErrorHandling = (req, res, next) => {
       
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File too large' });
+          return res.status(400).json({ error: 'File too large (max 5MB)' });
         }
         return res.status(400).json({ error: `Multer error: ${err.message}` });
       }
       if (err.message === 'Only image files are allowed!') {
         return res.status(400).json({ error: 'Only image files are allowed!' });
       }
+      
+      // Handle Cloudinary-specific errors
+      if (err.message && err.message.includes('Invalid cloud_name')) {
+        return res.status(500).json({ 
+          error: 'Image upload service configuration error. Please contact administrator.',
+          details: 'Cloudinary configuration issue'
+        });
+      }
+      
+      if (err.message && err.message.includes('cloudinary')) {
+        return res.status(500).json({ 
+          error: 'Image upload service error. Please try again or contact administrator.',
+          details: err.message
+        });
+      }
+      
       return res.status(400).json({ error: `Upload error: ${err.message}` });
     }
     next();
@@ -468,33 +500,53 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
     console.log('File original name:', req.file?.originalname);
     console.log('File size:', req.file?.size);
     console.log('File mimetype:', req.file?.mimetype);
-    console.log('Multer error:', req.multerError);
+    console.log('Cloudinary configured:', isCloudinaryConfigured);
     
     const { name, attributes, tier, description } = req.body;
     
+    // Validate required fields
     if (!name || !attributes || !tier || !description) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      console.log('Missing required fields:', { name: !!name, attributes: !!attributes, tier: !!tier, description: !!description });
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          name: !name ? 'Name is required' : null,
+          attributes: !attributes ? 'Attributes are required' : null,
+          tier: !tier ? 'Tier is required' : null,
+          description: !description ? 'Description is required' : null
+        }
+      });
+    }
+
+    // Validate attributes JSON
+    let parsedAttributes;
+    try {
+      parsedAttributes = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid attributes format' });
     }
 
     // Get image URL based on storage type
     const imageUrl = getImageUrl(req.file);
     if (imageUrl) {
-      console.log('Card image processed:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
+      console.log('Card image processed:', isCloudinaryConfigured ? 'Cloudinary URL' : 'Base64 fallback');
+      console.log('Image URL length:', imageUrl.length);
     } else {
       console.log('No image uploaded for card');
-      console.log('Multer error:', req.multerError);
     }
 
     const newCard = await prisma.card.create({
       data: {
         name,
         image: imageUrl,
-        attributes: attributes, // Store as JSON string
+        attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes), // Store as JSON string
         tier,
         description,
         status: 'approved'
       }
     });
+
+    console.log('Card created successfully:', newCard.id);
 
     // Parse attributes for response
     const cardWithParsedAttributes = {
@@ -504,7 +556,12 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
 
     res.status(201).json(cardWithParsedAttributes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Card creation error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to create card',
+      details: error.message 
+    });
   }
 });
 

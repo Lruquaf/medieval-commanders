@@ -111,7 +111,29 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
 
       await onSubmit(submitData);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save card');
+      console.error('Error saving card:', err);
+      
+      // Extract error message from response
+      let errorMessage = 'Failed to save card';
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+        
+        // Add details if available
+        if (err.response.data.details) {
+          if (typeof err.response.data.details === 'string') {
+            errorMessage += `: ${err.response.data.details}`;
+          } else if (typeof err.response.data.details === 'object') {
+            const details = Object.values(err.response.data.details).filter(Boolean);
+            if (details.length > 0) {
+              errorMessage += `: ${details.join(', ')}`;
+            }
+          }
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -16,8 +16,8 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     },
     tier: 'Common',
     description: '',
-    birthDate: '',
-    deathDate: ''
+    birthYear: '',
+    deathYear: ''
   });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -40,8 +40,8 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         },
         tier: card.tier || 'Common',
         description: card.description || '',
-        birthDate: card.birthDate ? (card.birthDate.split('-')[0] || card.birthDate) : '',
-        deathDate: card.deathDate ? (card.deathDate.split('-')[0] || card.deathDate) : ''
+        birthYear: card.birthYear || '',
+        deathYear: card.deathYear || ''
       });
       // Set current image preview if editing
       if (card.image) {
@@ -93,8 +93,8 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
       submitData.append('attributes', JSON.stringify(formData.attributes));
       submitData.append('tier', formData.tier);
       submitData.append('description', formData.description);
-      submitData.append('birthDate', formData.birthDate || '');
-      submitData.append('deathDate', formData.deathDate || '');
+      submitData.append('birthDate', formData.birthYear || '');
+      submitData.append('deathDate', formData.deathYear || '');
       
       if (image) {
         submitData.append('image', image);
@@ -274,12 +274,12 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="birthDate" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
+          <label htmlFor="birthYear" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
           <input
             type="number"
-            id="birthDate"
-            name="birthDate"
-            value={formData.birthDate}
+            id="birthYear"
+            name="birthYear"
+            value={formData.birthYear}
             onChange={handleInputChange}
             className="form-input"
             placeholder="e.g., 1157"
@@ -289,12 +289,12 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="deathDate" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
+          <label htmlFor="deathYear" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
           <input
             type="number"
-            id="deathDate"
-            name="deathDate"
-            value={formData.deathDate}
+            id="deathYear"
+            name="deathYear"
+            value={formData.deathYear}
             onChange={handleInputChange}
             className="form-input"
             placeholder="e.g., 1199"

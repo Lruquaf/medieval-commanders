@@ -356,6 +356,14 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
       console.log('No image uploaded for proposal');
     }
 
+    // Convert year strings to integers
+    const formatYear = (yearString) => {
+      if (!yearString || yearString.trim() === '') return null;
+      const year = parseInt(yearString);
+      if (isNaN(year) || year < 1 || year > 2100) return null;
+      return year;
+    };
+
     const proposal = await prisma.proposal.create({
       data: {
         name,
@@ -364,8 +372,8 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
         attributes: attributes, // Store as JSON string
         tier,
         description,
-        birthDate: birthDate ? `${birthDate}-01-01` : null,
-        deathDate: deathDate ? `${deathDate}-01-01` : null,
+        birthYear: formatYear(birthDate),
+        deathYear: formatYear(deathDate),
         status: 'pending'
       }
     });
@@ -416,8 +424,8 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
         attributes: proposal.attributes, // Keep as JSON string
         tier: proposal.tier,
         description: proposal.description,
-        birthDate: proposal.birthDate,
-        deathDate: proposal.deathDate,
+        birthYear: proposal.birthYear,
+        deathYear: proposal.deathYear,
         status: 'approved'
       }
     });
@@ -547,13 +555,21 @@ app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
     const { id } = req.params;
     const { name, attributes, tier, description, birthDate, deathDate } = req.body;
     
+    // Convert year strings to integers
+    const formatYear = (yearString) => {
+      if (!yearString || yearString.trim() === '') return null;
+      const year = parseInt(yearString);
+      if (isNaN(year) || year < 1 || year > 2100) return null;
+      return year;
+    };
+
     const updateData = {};
     if (name) updateData.name = name;
     if (attributes) updateData.attributes = attributes; // Store as JSON string
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
-    if (birthDate !== undefined) updateData.birthDate = birthDate ? `${birthDate}-01-01` : null;
-    if (deathDate !== undefined) updateData.deathDate = deathDate ? `${deathDate}-01-01` : null;
+    if (birthDate !== undefined) updateData.birthYear = formatYear(birthDate);
+    if (deathDate !== undefined) updateData.deathYear = formatYear(deathDate);
     if (req.file) {
       updateData.image = getImageUrl(req.file);
       console.log('Card image updated:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
@@ -634,6 +650,14 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
       console.log('No image uploaded for card');
     }
 
+    // Convert year strings to integers
+    const formatYear = (yearString) => {
+      if (!yearString || yearString.trim() === '') return null;
+      const year = parseInt(yearString);
+      if (isNaN(year) || year < 1 || year > 2100) return null;
+      return year;
+    };
+
     const newCard = await prisma.card.create({
       data: {
         name,
@@ -641,8 +665,8 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
         attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes), // Store as JSON string
         tier,
         description,
-        birthDate: birthDate ? `${birthDate}-01-01` : null,
-        deathDate: deathDate ? `${deathDate}-01-01` : null,
+        birthYear: formatYear(birthDate),
+        deathYear: formatYear(deathDate),
         status: 'approved'
       }
     });

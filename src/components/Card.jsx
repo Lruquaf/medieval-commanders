@@ -106,14 +106,12 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
             </div>
 
             {/* Birth and Death Dates - Above Image */}
-            {(card.birthDate || card.deathDate) && (
+            {(card.birthYear || card.deathYear) && (
               <div className="modal-dates">
                 <div className="modal-date-range">
                   {(() => {
-                    const birthYear = card.birthDate ? 
-                      (card.birthDate.includes('-') ? card.birthDate.split('-')[0] : card.birthDate) : null;
-                    const deathYear = card.deathDate ? 
-                      (card.deathDate.includes('-') ? card.deathDate.split('-')[0] : card.deathDate) : null;
+                    const birthYear = card.birthYear;
+                    const deathYear = card.deathYear;
                     
                     if (birthYear && deathYear) {
                       return `${birthYear}-${deathYear}`;

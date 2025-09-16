@@ -19,8 +19,8 @@ const CreateProposal = () => {
     },
     tier: 'Common',
     description: '',
-    birthDate: '',
-    deathDate: ''
+    birthYear: '',
+    deathYear: ''
   });
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -87,8 +87,8 @@ const CreateProposal = () => {
       submitData.append('attributes', JSON.stringify(formData.attributes));
       submitData.append('tier', formData.tier);
       submitData.append('description', formData.description);
-      submitData.append('birthDate', formData.birthDate || '');
-      submitData.append('deathDate', formData.deathDate || '');
+      submitData.append('birthDate', formData.birthYear || '');
+      submitData.append('deathDate', formData.deathYear || '');
       
       if (image) {
         submitData.append('image', image);
@@ -263,13 +263,13 @@ const CreateProposal = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="birthDate" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
+          <label htmlFor="birthYear" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
           <p className="form-description">Enter the commander's birth year if known (e.g., 1157).</p>
           <input
             type="number"
-            id="birthDate"
-            name="birthDate"
-            value={formData.birthDate}
+            id="birthYear"
+            name="birthYear"
+            value={formData.birthYear}
             onChange={handleInputChange}
             className="form-input"
             placeholder="e.g., 1157"
@@ -279,13 +279,13 @@ const CreateProposal = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="deathDate" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
+          <label htmlFor="deathYear" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
           <p className="form-description">Enter the commander's death year if known (e.g., 1199).</p>
           <input
             type="number"
-            id="deathDate"
-            name="deathDate"
-            value={formData.deathDate}
+            id="deathYear"
+            name="deathYear"
+            value={formData.deathYear}
             onChange={handleInputChange}
             className="form-input"
             placeholder="e.g., 1199"

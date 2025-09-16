@@ -35,9 +35,9 @@ class EmailService {
           pass: process.env.EMAIL_PASS // Use app password for Gmail
         },
         // Add timeout and connection settings
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000,   // 30 seconds
-        socketTimeout: 60000,     // 60 seconds
+        connectionTimeout: 120000, // 120 seconds (2 minutes)
+        greetingTimeout: 60000,    // 60 seconds
+        socketTimeout: 120000,     // 120 seconds (2 minutes)
         pool: true,
         maxConnections: 1,
         maxMessages: 3,
@@ -137,6 +137,14 @@ class EmailService {
       return { success: false, error: 'Email service not configured' };
     }
 
+    // Log email configuration for debugging
+    console.log('Email service configuration:');
+    console.log('- Service:', process.env.EMAIL_SERVICE);
+    console.log('- User:', process.env.EMAIL_USER);
+    console.log('- From:', process.env.EMAIL_FROM);
+    console.log('- To:', to);
+    console.log('- Subject:', subject);
+
     try {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@medievalcommanders.com',
@@ -149,7 +157,7 @@ class EmailService {
       // Add timeout to the sendMail operation
       const sendMailPromise = this.transporter.sendMail(mailOptions);
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Email send timeout')), 30000); // 30 second timeout
+        setTimeout(() => reject(new Error('Email send timeout')), 120000); // 120 second timeout (2 minutes)
       });
 
       const info = await Promise.race([sendMailPromise, timeoutPromise]);

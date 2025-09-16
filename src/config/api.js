@@ -36,9 +36,27 @@ const apiClient = axios.create({
 
 // Add response interceptor for better error handling
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response:', {
+      url: response.config.url,
+      method: response.config.method,
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data
+    });
+    return response;
+  },
   (error) => {
-    
+    console.error('❌ API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: error.message,
+      code: error.code,
+      data: error.response?.data,
+      timeout: error.code === 'ECONNABORTED'
+    });
     return Promise.reject(error);
   }
 );
@@ -46,9 +64,17 @@ apiClient.interceptors.response.use(
 // Add request interceptor to log requests
 apiClient.interceptors.request.use(
   (config) => {
+    console.log('🌐 API Request:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+      timeout: config.timeout,
+      headers: config.headers
+    });
     return config;
   },
   (error) => {
+    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );

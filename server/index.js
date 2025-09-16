@@ -106,6 +106,53 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Email test endpoint
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const { to, subject, message } = req.body;
+    
+    if (!to || !subject) {
+      return res.status(400).json({ error: 'to and subject are required' });
+    }
+
+    console.log('🧪 Testing email service...');
+    console.log('Email config:', {
+      service: process.env.EMAIL_SERVICE,
+      user: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM,
+      configured: emailService.isConfigured
+    });
+
+    const result = await emailService.sendEmail(
+      to, 
+      subject, 
+      `<p>${message || 'This is a test email from Medieval Commanders system.'}</p>`,
+      message || 'This is a test email from Medieval Commanders system.'
+    );
+
+    if (result.success) {
+      console.log('✅ Test email sent successfully');
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully',
+        messageId: result.messageId 
+      });
+    } else {
+      console.error('❌ Test email failed:', result.error);
+      res.status(500).json({ 
+        success: false, 
+        error: result.error 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Email test error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Debug endpoint to check database content
 app.get('/api/debug/cards', async (req, res) => {
   try {

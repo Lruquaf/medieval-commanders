@@ -80,6 +80,18 @@ const CreateProposal = () => {
       return;
     }
 
+    console.log('🚀 Starting proposal submission...');
+    console.log('📝 Form data:', {
+      name: formData.name,
+      email: formData.email,
+      tier: formData.tier,
+      description: formData.description,
+      attributes: formData.attributes,
+      birthYear: formData.birthYear,
+      deathYear: formData.deathYear,
+      image: image ? { name: image.name, size: image.size, type: image.type } : null
+    });
+
     try {
       const submitData = new FormData();
       submitData.append('name', formData.name);
@@ -92,20 +104,51 @@ const CreateProposal = () => {
       
       if (image) {
         submitData.append('image', image);
+        console.log('📷 Image attached:', { name: image.name, size: image.size, type: image.type });
       }
 
-      await apiClient.post('/api/proposals', submitData, {
+      console.log('🌐 Sending request to:', apiClient.defaults.baseURL + '/api/proposals');
+      
+      const response = await apiClient.post('/api/proposals', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 30000, // 30 second timeout
       });
 
+      console.log('✅ Proposal submitted successfully:', response.data);
       setSuccess(true);
       setTimeout(() => {
         navigate('/');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit proposal');
+      console.error('❌ Proposal submission failed:');
+      console.error('Error object:', err);
+      console.error('Error message:', err.message);
+      console.error('Error code:', err.code);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
+      console.error('Error config:', err.config);
+      
+      // More detailed error messages
+      let errorMessage = 'Failed to submit proposal';
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please check your internet connection and try again.';
+      } else if (err.response?.status === 499) {
+        errorMessage = 'Server timeout occurred. The proposal was created but email notification failed. Please contact support.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again later or contact support.';
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.error || 'Invalid data provided. Please check your input.';
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

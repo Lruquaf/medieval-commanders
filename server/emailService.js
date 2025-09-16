@@ -28,6 +28,19 @@ class EmailService {
     // 3. Ethereal Email for testing (creates fake accounts)
     
     if (process.env.EMAIL_SERVICE === 'gmail') {
+      console.log('🔧 Setting up Gmail email service...');
+      console.log('Gmail config check:', {
+        user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+        pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+        from: process.env.EMAIL_FROM ? 'SET' : 'NOT SET'
+      });
+
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.error('❌ Gmail configuration incomplete. EMAIL_USER and EMAIL_PASS are required.');
+        this.isConfigured = false;
+        return;
+      }
+
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -42,9 +55,25 @@ class EmailService {
         maxConnections: 1,
         maxMessages: 3,
         rateDelta: 20000, // 20 seconds
-        rateLimit: 5
+        rateLimit: 5,
+        // Additional Gmail-specific settings
+        secure: true,
+        port: 465,
+        tls: {
+          rejectUnauthorized: false
+        }
       });
-      this.isConfigured = true;
+      
+      // Test the connection
+      this.transporter.verify((error, success) => {
+        if (error) {
+          console.error('❌ Gmail connection verification failed:', error);
+          this.isConfigured = false;
+        } else {
+          console.log('✅ Gmail connection verified successfully');
+          this.isConfigured = true;
+        }
+      });
     } else if (process.env.EMAIL_SERVICE === 'mailtrap') {
       this.transporter = nodemailer.createTransport({
         host: 'smtp.mailtrap.io',

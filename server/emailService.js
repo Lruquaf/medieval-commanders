@@ -42,38 +42,27 @@ class EmailService {
       }
 
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // true for 465, false for other ports
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS // Use app password for Gmail
         },
         // Add timeout and connection settings
-        connectionTimeout: 120000, // 120 seconds (2 minutes)
-        greetingTimeout: 60000,    // 60 seconds
-        socketTimeout: 120000,     // 120 seconds (2 minutes)
-        pool: true,
-        maxConnections: 1,
-        maxMessages: 3,
-        rateDelta: 20000, // 20 seconds
-        rateLimit: 5,
-        // Additional Gmail-specific settings
-        secure: true,
-        port: 465,
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000,   // 30 seconds
+        socketTimeout: 60000,     // 60 seconds
+        // Gmail-specific settings
         tls: {
-          rejectUnauthorized: false
+          rejectUnauthorized: false,
+          ciphers: 'SSLv3'
         }
       });
       
-      // Test the connection
-      this.transporter.verify((error, success) => {
-        if (error) {
-          console.error('❌ Gmail connection verification failed:', error);
-          this.isConfigured = false;
-        } else {
-          console.log('✅ Gmail connection verified successfully');
-          this.isConfigured = true;
-        }
-      });
+      // Set as configured initially, verification will happen on first email send
+      this.isConfigured = true;
+      console.log('✅ Gmail transporter created successfully');
     } else if (process.env.EMAIL_SERVICE === 'mailtrap') {
       this.transporter = nodemailer.createTransport({
         host: 'smtp.mailtrap.io',
@@ -167,12 +156,22 @@ class EmailService {
     }
 
     // Log email configuration for debugging
-    console.log('Email service configuration:');
+    console.log('📧 Email service configuration:');
     console.log('- Service:', process.env.EMAIL_SERVICE);
     console.log('- User:', process.env.EMAIL_USER);
     console.log('- From:', process.env.EMAIL_FROM);
     console.log('- To:', to);
     console.log('- Subject:', subject);
+
+    // Verify connection before sending
+    try {
+      console.log('🔍 Verifying email connection...');
+      await this.transporter.verify();
+      console.log('✅ Email connection verified');
+    } catch (verifyError) {
+      console.error('❌ Email connection verification failed:', verifyError);
+      return { success: false, error: `Connection failed: ${verifyError.message}` };
+    }
 
     try {
       const mailOptions = {

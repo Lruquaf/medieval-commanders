@@ -106,6 +106,23 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Email configuration debug endpoint
+app.get('/api/debug/email-config', (req, res) => {
+  const config = {
+    EMAIL_SERVICE: process.env.EMAIL_SERVICE || 'NOT SET',
+    EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+    EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+    EMAIL_FROM: process.env.EMAIL_FROM || 'NOT SET',
+    DEFAULT_ADMIN_EMAIL: process.env.DEFAULT_ADMIN_EMAIL || 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV || 'NOT SET',
+    emailServiceConfigured: emailService.isConfigured,
+    emailServiceTransporter: emailService.transporter ? 'EXISTS' : 'NULL'
+  };
+  
+  console.log('🔍 Email Configuration Debug:', config);
+  res.json(config);
+});
+
 // Email test endpoint
 app.post('/api/test-email', async (req, res) => {
   try {

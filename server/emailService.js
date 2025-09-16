@@ -33,7 +33,16 @@ class EmailService {
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS // Use app password for Gmail
-        }
+        },
+        // Add timeout and connection settings
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000,   // 30 seconds
+        socketTimeout: 60000,     // 60 seconds
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 3,
+        rateDelta: 20000, // 20 seconds
+        rateLimit: 5
       });
       this.isConfigured = true;
     } else if (process.env.EMAIL_SERVICE === 'mailtrap') {
@@ -137,7 +146,13 @@ class EmailService {
         html
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
+      // Add timeout to the sendMail operation
+      const sendMailPromise = this.transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Email send timeout')), 30000); // 30 second timeout
+      });
+
+      const info = await Promise.race([sendMailPromise, timeoutPromise]);
       
       // For Ethereal Email, log the preview URL
       if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local') {
@@ -150,6 +165,11 @@ class EmailService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('Failed to send email:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        command: error.command
+      });
       return { success: false, error: error.message };
     }
   }

@@ -448,18 +448,30 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
       attributes: JSON.parse(proposal.attributes)
     };
 
-    // Send admin notification email
-    try {
-      const adminEmail = await getAdminEmail();
-      const emailResult = await emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
-      if (emailResult.success) {
-        console.log('Admin notification email sent successfully');
-      } else {
-        console.error('Failed to send admin notification email:', emailResult.error);
+    // Send admin notification email asynchronously (don't block response)
+    setImmediate(async () => {
+      try {
+        const adminEmail = await getAdminEmail();
+        console.log('📧 Attempting to send admin notification email...');
+        
+        // Set a timeout for email sending
+        const emailPromise = emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email timeout')), 30000)
+        );
+        
+        const emailResult = await Promise.race([emailPromise, timeoutPromise]);
+        
+        if (emailResult.success) {
+          console.log('✅ Admin notification email sent successfully');
+        } else {
+          console.error('❌ Failed to send admin notification email:', emailResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Error sending admin notification email:', error.message);
+        // Don't throw error, just log it
       }
-    } catch (error) {
-      console.error('Error sending admin notification email:', error);
-    }
+    });
 
     res.status(201).json(proposalWithParsedAttributes);
   } catch (error) {

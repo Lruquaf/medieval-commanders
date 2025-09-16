@@ -113,7 +113,7 @@ const CreateProposal = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // 30 second timeout
+        timeout: 120000, // 120 second timeout (2 minutes)
       });
 
       console.log('✅ Proposal submitted successfully:', response.data);

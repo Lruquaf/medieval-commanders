@@ -19,6 +19,9 @@ class EmailService {
       // For production, use real SMTP or email service
       this.setupProductionEmail();
     }
+    
+    // If Gmail fails, fallback to Ethereal
+    this.setupFallbackEmail();
   }
 
   setupLocalEmail() {
@@ -42,22 +45,15 @@ class EmailService {
       }
 
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // true for 465, false for other ports
+        service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS // Use app password for Gmail
         },
-        // Add timeout and connection settings
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000,   // 30 seconds
-        socketTimeout: 60000,     // 60 seconds
-        // Gmail-specific settings
-        tls: {
-          rejectUnauthorized: false,
-          ciphers: 'SSLv3'
-        }
+        // Simplified timeout settings
+        connectionTimeout: 30000, // 30 seconds
+        greetingTimeout: 15000,   // 15 seconds
+        socketTimeout: 30000,     // 30 seconds
       });
       
       // Set as configured initially, verification will happen on first email send
@@ -163,16 +159,6 @@ class EmailService {
     console.log('- To:', to);
     console.log('- Subject:', subject);
 
-    // Verify connection before sending
-    try {
-      console.log('🔍 Verifying email connection...');
-      await this.transporter.verify();
-      console.log('✅ Email connection verified');
-    } catch (verifyError) {
-      console.error('❌ Email connection verification failed:', verifyError);
-      return { success: false, error: `Connection failed: ${verifyError.message}` };
-    }
-
     try {
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@medievalcommanders.com',
@@ -185,7 +171,7 @@ class EmailService {
       // Add timeout to the sendMail operation
       const sendMailPromise = this.transporter.sendMail(mailOptions);
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Email send timeout')), 120000); // 120 second timeout (2 minutes)
+        setTimeout(() => reject(new Error('Email send timeout')), 30000); // 30 second timeout
       });
 
       const info = await Promise.race([sendMailPromise, timeoutPromise]);

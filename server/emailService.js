@@ -21,7 +21,7 @@ class EmailService {
     }
     
     // If Gmail fails, fallback to Ethereal
-    this.setupFallbackEmail();
+    // this.setupFallbackEmail(); // Commented out for now
   }
 
   setupLocalEmail() {

@@ -18,6 +18,8 @@ model Card {
   attributes  String   // JSON string for attributes
   tier        String
   description String
+  birthDate   DateTime?
+  deathDate   DateTime?
   status      String   @default("approved")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -33,9 +35,20 @@ model Proposal {
   attributes  String   // JSON string for attributes
   tier        String
   description String
+  birthDate   DateTime?
+  deathDate   DateTime?
   status      String   @default("pending")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("proposals")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
 }

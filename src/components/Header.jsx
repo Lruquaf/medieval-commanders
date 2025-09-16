@@ -44,11 +44,6 @@ const Header = () => {
                 <Link to="/propose" onClick={closeMenu}>Propose Card</Link>
               </li>
             )}
-            {!isAdminPage && (
-              <li>
-                <Link to="/admin" onClick={closeMenu}>Admin Panel</Link>
-              </li>
-            )}
           </ul>
           
           {/* Overlay for mobile menu */}

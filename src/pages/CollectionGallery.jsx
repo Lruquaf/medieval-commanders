@@ -8,6 +8,8 @@ const CollectionGallery = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   useEffect(() => {
     fetchCards();
@@ -21,12 +23,9 @@ const CollectionGallery = () => {
       // Ensure response.data is an array
       const cardsData = Array.isArray(response.data) ? response.data : [];
       
-      console.log('Fetched gallery cards data:', cardsData);
-      console.log('Sample gallery card image:', cardsData[0]?.image);
       
       setCards(cardsData);
     } catch (err) {
-      console.error('Error fetching cards:', err);
       setError('Failed to load cards. Using sample data...');
       // Use sample data if API fails
       setCards([
@@ -56,6 +55,32 @@ const CollectionGallery = () => {
   const filteredCards = (cards || []).filter(card => {
     if (filter === 'all') return true;
     return card.tier.toLowerCase() === filter.toLowerCase();
+  });
+
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'name':
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case 'birthDate':
+        aValue = a.birthDate ? parseInt(a.birthDate.split('-')[0] || a.birthDate) : 0;
+        bValue = b.birthDate ? parseInt(b.birthDate.split('-')[0] || b.birthDate) : 0;
+        break;
+      case 'deathDate':
+        aValue = a.deathDate ? parseInt(a.deathDate.split('-')[0] || a.deathDate) : 0;
+        bValue = b.deathDate ? parseInt(b.deathDate.split('-')[0] || b.deathDate) : 0;
+        break;
+      default:
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+    }
+    
+    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const getTierCounts = () => {
@@ -110,16 +135,46 @@ const CollectionGallery = () => {
             </button>
           ))}
         </div>
+
+        {/* Sorting controls */}
+        <div className="sorting-controls">
+          <div className="sort-group">
+            <label htmlFor="sortBy" className="sort-label">Sort by:</label>
+            <select
+              id="sortBy"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="sort-select"
+            >
+              <option value="name">Name</option>
+              <option value="birthDate">Birth Date</option>
+              <option value="deathDate">Death Date</option>
+            </select>
+          </div>
+          
+          <div className="sort-group">
+            <label htmlFor="sortOrder" className="sort-label">Order:</label>
+            <select
+              id="sortOrder"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="sort-select"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {filteredCards.length === 0 ? (
+      {sortedCards.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'white' }}>
           <h3>No cards found</h3>
           <p>Try adjusting your filter or check back later for new additions.</p>
         </div>
       ) : (
         <div className="card-grid">
-          {filteredCards.map(card => (
+          {sortedCards.map(card => (
             <Card key={card.id} card={card} />
           ))}
         </div>

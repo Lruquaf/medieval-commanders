@@ -38,6 +38,29 @@ const ProposalItem = ({ proposal, onApprove, onReject }) => {
       </div>
 
       <div className="proposal-content">
+        {/* Birth and Death Dates - Above Image */}
+        {(proposal.birthDate || proposal.deathDate) && (
+          <div className="proposal-dates-section">
+            <div className="proposal-date-range">
+              {(() => {
+                const birthYear = proposal.birthDate ? 
+                  (proposal.birthDate.includes('-') ? proposal.birthDate.split('-')[0] : proposal.birthDate) : null;
+                const deathYear = proposal.deathDate ? 
+                  (proposal.deathDate.includes('-') ? proposal.deathDate.split('-')[0] : proposal.deathDate) : null;
+                
+                if (birthYear && deathYear) {
+                  return `${birthYear}-${deathYear}`;
+                } else if (birthYear) {
+                  return `Born: ${birthYear}`;
+                } else if (deathYear) {
+                  return `Died: ${deathYear}`;
+                }
+                return null;
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* Image Section */}
         <div className="proposal-image-section">
           {proposal.image && (

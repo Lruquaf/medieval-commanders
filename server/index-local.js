@@ -4,9 +4,10 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const emailService = require('./emailService');
 
 // Use local Prisma client
-const { PrismaClient } = require('./node_modules/.prisma/client-local');
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const app = express();
@@ -16,7 +17,16 @@ const PORT = process.env.PORT || 5001;
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Created uploads directory:', uploadsDir);
+}
+
+// Helper function to get admin email
+async function getAdminEmail() {
+  try {
+    const admin = await prisma.admin.findFirst();
+    return admin ? admin.email : process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com';
+  } catch (error) {
+    return process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com';
+  }
 }
 
 // Local file storage configuration
@@ -61,7 +71,6 @@ app.use('/uploads', express.static(uploadsDir));
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    console.log('📎 File upload:', file.originalname, file.mimetype);
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -77,7 +86,6 @@ const upload = multer({
 const uploadWithErrorHandling = (req, res, next) => {
   upload.single('image')(req, res, (err) => {
     if (err) {
-      console.error('Upload error:', err.message);
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({ error: 'File too large (max 10MB)' });
@@ -145,7 +153,6 @@ app.get('/api/cards', async (req, res) => {
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
-    console.error('Error fetching cards:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -164,7 +171,24 @@ app.get('/api/admin/cards', async (req, res) => {
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
-    console.error('Error fetching admin cards:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all proposals (public)
+app.get('/api/proposals', async (req, res) => {
+  try {
+    const allProposals = await prisma.proposal.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    const proposalsWithParsedAttributes = allProposals.map(proposal => ({
+      ...proposal,
+      attributes: JSON.parse(proposal.attributes)
+    }));
+    
+    res.json(proposalsWithParsedAttributes);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -190,7 +214,7 @@ app.get('/api/admin/proposals', async (req, res) => {
 // Create a new card proposal
 app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
   try {
-    const { name, email, attributes, tier, description } = req.body;
+    const { name, email, attributes, tier, description, birthDate, deathDate } = req.body;
     
     if (!name || !email || !attributes || !tier || !description) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -206,6 +230,8 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
         attributes: attributes,
         tier,
         description,
+        birthDate: birthDate ? new Date(`${birthDate}-01-01`) : null,
+        deathDate: deathDate ? new Date(`${deathDate}-01-01`) : null,
         status: 'pending'
       }
     });
@@ -214,6 +240,15 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
       ...proposal,
       attributes: JSON.parse(proposal.attributes)
     };
+
+    // Send admin notification email
+    try {
+      const adminEmail = await getAdminEmail();
+      const emailResult = await emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
+      // Email notification sent
+    } catch (error) {
+      // Email notification failed
+    }
 
     res.status(201).json(proposalWithParsedAttributes);
   } catch (error) {
@@ -224,11 +259,8 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
 // Admin: Create a new card
 app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
   try {
-    console.log('🔧 Creating new card...');
-    console.log('📁 File:', req.file?.filename);
-    console.log('📝 Data:', req.body);
     
-    const { name, attributes, tier, description } = req.body;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
     
     if (!name || !attributes || !tier || !description) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -243,11 +275,12 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
         attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes),
         tier,
         description,
+        birthDate: birthDate ? new Date(`${birthDate}-01-01`) : null,
+        deathDate: deathDate ? new Date(`${deathDate}-01-01`) : null,
         status: 'approved'
       }
     });
 
-    console.log('✅ Card created:', newCard.id);
 
     const cardWithParsedAttributes = {
       ...newCard,
@@ -256,7 +289,6 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
 
     res.status(201).json(cardWithParsedAttributes);
   } catch (error) {
-    console.error('❌ Card creation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -265,13 +297,15 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
 app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, attributes, tier, description } = req.body;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
     
     const updateData = {};
     if (name) updateData.name = name;
     if (attributes) updateData.attributes = attributes;
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
+    if (birthDate !== undefined) updateData.birthDate = birthDate ? new Date(`${birthDate}-01-01`) : null;
+    if (deathDate !== undefined) updateData.deathDate = deathDate ? new Date(`${deathDate}-01-01`) : null;
     if (req.file) {
       updateData.image = getImageUrl(req.file);
     }
@@ -309,7 +343,6 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
       
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        console.log('🗑️ Deleted image file:', filename);
       }
     }
     
@@ -342,6 +375,8 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
         attributes: proposal.attributes,
         tier: proposal.tier,
         description: proposal.description,
+        birthDate: proposal.birthDate,
+        deathDate: proposal.deathDate,
         status: 'approved'
       }
     });
@@ -355,6 +390,14 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
       ...newCard,
       attributes: JSON.parse(newCard.attributes)
     };
+
+    // Send approval email to proposer
+    try {
+      const emailResult = await emailService.sendProposalApprovalEmail(proposal);
+      // Email notification sent
+    } catch (error) {
+      // Email notification failed
+    }
     
     res.json(cardWithParsedAttributes);
   } catch (error) {
@@ -366,11 +409,24 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
 app.post('/api/admin/proposals/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
+    const proposal = await prisma.proposal.findUnique({ where: { id } });
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
     
     await prisma.proposal.update({
       where: { id },
       data: { status: 'rejected' }
     });
+
+    // Send rejection email to proposer
+    try {
+      const emailResult = await emailService.sendProposalRejectionEmail(proposal);
+      // Email notification sent
+    } catch (error) {
+      // Email notification failed
+    }
 
     res.json({ message: 'Proposal rejected' });
   } catch (error) {
@@ -378,28 +434,62 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
   }
 });
 
+// Admin: Get admin settings
+app.get('/api/admin/settings', async (req, res) => {
+  try {
+    const admin = await prisma.admin.findFirst();
+    if (!admin) {
+      return res.json({ email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com' });
+    }
+    res.json({ email: admin.email });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Update admin email
+app.put('/api/admin/settings', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+
+    // Check if admin exists
+    let admin = await prisma.admin.findFirst();
+    
+    if (admin) {
+      // Update existing admin
+      admin = await prisma.admin.update({
+        where: { id: admin.id },
+        data: { email }
+      });
+    } else {
+      // Create new admin
+      admin = await prisma.admin.create({
+        data: { email }
+      });
+    }
+
+    res.json({ email: admin.email });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log('🚀 Local development server running');
-  console.log(`📍 Server: http://localhost:${PORT}`);
-  console.log(`📁 Uploads: ${uploadsDir}`);
-  console.log(`🗄️ Database: SQLite (./dev.db)`);
-  console.log(`🔧 Environment: Local Development`);
-  console.log('');
-  console.log('📋 Available endpoints:');
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
-  console.log(`   Debug:  http://localhost:${PORT}/api/debug/cards`);
+  // Server started successfully
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('🛑 Shutting down local server...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('🛑 Shutting down local server...');
   await prisma.$disconnect();
   process.exit(0);
 });

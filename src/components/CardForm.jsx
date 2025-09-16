@@ -15,7 +15,9 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
       health: 50
     },
     tier: 'Common',
-    description: ''
+    description: '',
+    birthDate: '',
+    deathDate: ''
   });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -37,7 +39,9 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           health: 50
         },
         tier: card.tier || 'Common',
-        description: card.description || ''
+        description: card.description || '',
+        birthDate: card.birthDate ? (card.birthDate.split('-')[0] || card.birthDate) : '',
+        deathDate: card.deathDate ? (card.deathDate.split('-')[0] || card.deathDate) : ''
       });
       // Set current image preview if editing
       if (card.image) {
@@ -89,29 +93,15 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
       submitData.append('attributes', JSON.stringify(formData.attributes));
       submitData.append('tier', formData.tier);
       submitData.append('description', formData.description);
-      
-      console.log('FormData contents:');
-      console.log('Image file:', image);
-      console.log('Image name:', image?.name);
-      console.log('Image size:', image?.size);
-      console.log('Image type:', image?.type);
+      submitData.append('birthDate', formData.birthDate || '');
+      submitData.append('deathDate', formData.deathDate || '');
       
       if (image) {
         submitData.append('image', image);
-        console.log('Image appended to FormData');
-      } else {
-        console.log('No image to append');
-      }
-
-      // Debug FormData entries
-      console.log('FormData entries:');
-      for (let [key, value] of submitData.entries()) {
-        console.log(key, value);
       }
 
       await onSubmit(submitData);
     } catch (err) {
-      console.error('Error saving card:', err);
       
       // Extract error message from response
       let errorMessage = 'Failed to save card';
@@ -280,6 +270,36 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
             className="form-textarea"
             required
             placeholder="Describe the commander's background, achievements, and historical significance..."
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="birthDate" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
+          <input
+            type="number"
+            id="birthDate"
+            name="birthDate"
+            value={formData.birthDate}
+            onChange={handleInputChange}
+            className="form-input"
+            placeholder="e.g., 1157"
+            min="1"
+            max="2100"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="deathDate" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
+          <input
+            type="number"
+            id="deathDate"
+            name="deathDate"
+            value={formData.deathDate}
+            onChange={handleInputChange}
+            className="form-input"
+            placeholder="e.g., 1199"
+            min="1"
+            max="2100"
           />
         </div>
 

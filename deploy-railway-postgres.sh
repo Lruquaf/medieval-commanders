@@ -17,8 +17,8 @@ cp prisma/schema.railway.prisma server/schema.prisma
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
 
-# Verify Cloudinary packages are installed
-echo "Verifying Cloudinary packages..."
+# Verify required packages are installed
+echo "Verifying required packages..."
 if [ -d "server/node_modules/cloudinary" ]; then
     echo "✓ Cloudinary package found"
 else
@@ -33,6 +33,14 @@ else
     cd server && npm install multer-storage-cloudinary && cd ..
 fi
 
+# Verify email service packages
+if [ -d "server/node_modules/nodemailer" ]; then
+    echo "✓ Nodemailer package found"
+else
+    echo "✗ Nodemailer package not found, installing..."
+    cd server && npm install nodemailer && cd ..
+fi
+
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "ERROR: DATABASE_URL environment variable is not set!"
@@ -42,6 +50,69 @@ if [ -z "$DATABASE_URL" ]; then
     echo "2. Go to Variables tab"
     echo "3. Make sure DATABASE_URL is present"
     exit 1
+fi
+
+# Check email service configuration
+echo "Checking email service configuration..."
+if [ -z "$EMAIL_SERVICE" ]; then
+    echo "WARNING: EMAIL_SERVICE environment variable is not set!"
+    echo "Email notifications will not work. Please set EMAIL_SERVICE in Railway dashboard."
+    echo "Options: sendgrid, ses, mailgun, smtp, gmail, or ethereal"
+else
+    echo "✓ EMAIL_SERVICE is set to: $EMAIL_SERVICE"
+    
+    # Check for required email service variables
+    case "$EMAIL_SERVICE" in
+        "sendgrid")
+            if [ -z "$SENDGRID_API_KEY" ]; then
+                echo "WARNING: SENDGRID_API_KEY is not set!"
+            else
+                echo "✓ SENDGRID_API_KEY is set"
+            fi
+            ;;
+        "ses")
+            if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+                echo "WARNING: AWS credentials are not set!"
+            else
+                echo "✓ AWS credentials are set"
+            fi
+            ;;
+        "mailgun")
+            if [ -z "$MAILGUN_API_KEY" ] || [ -z "$MAILGUN_DOMAIN" ]; then
+                echo "WARNING: MAILGUN credentials are not set!"
+            else
+                echo "✓ MAILGUN credentials are set"
+            fi
+            ;;
+        "smtp")
+            if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ]; then
+                echo "WARNING: SMTP credentials are not set!"
+            else
+                echo "✓ SMTP credentials are set"
+            fi
+            ;;
+        "gmail")
+            if [ -z "$EMAIL_USER" ] || [ -z "$EMAIL_PASS" ]; then
+                echo "WARNING: Gmail credentials are not set!"
+            else
+                echo "✓ Gmail credentials are set"
+            fi
+            ;;
+        "ethereal")
+            echo "✓ Using Ethereal Email for testing"
+            ;;
+    esac
+fi
+
+# Check other required email variables
+if [ -z "$EMAIL_FROM" ]; then
+    echo "WARNING: EMAIL_FROM is not set! Using default."
+    export EMAIL_FROM="Medieval Commanders <noreply@medievalcommanders.com>"
+fi
+
+if [ -z "$DEFAULT_ADMIN_EMAIL" ]; then
+    echo "WARNING: DEFAULT_ADMIN_EMAIL is not set! Using default."
+    export DEFAULT_ADMIN_EMAIL="admin@medievalcommanders.com"
 fi
 
 # Log DATABASE_URL for debugging (without password)

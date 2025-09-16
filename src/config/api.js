@@ -38,17 +38,6 @@ const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error);
-    
-    // Handle network errors
-    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-      console.error('Backend server is not reachable. Please check if the backend is running.');
-    }
-    
-    // Handle CORS errors
-    if (error.message.includes('CORS')) {
-      console.error('CORS error. Please check backend CORS configuration.');
-    }
     
     return Promise.reject(error);
   }
@@ -57,11 +46,9 @@ apiClient.interceptors.response.use(
 // Add request interceptor to log requests
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
     return config;
   },
   (error) => {
-    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );

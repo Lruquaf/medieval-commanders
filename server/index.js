@@ -4,6 +4,7 @@ const cors = require('cors');
 const prisma = require('./prisma');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const emailService = require('./emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -20,6 +21,17 @@ const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
 const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
 
 const isCloudinaryConfigured = cloudName && apiKey && apiSecret;
+
+// Helper function to get admin email
+async function getAdminEmail() {
+  try {
+    const admin = await prisma.admin.findFirst();
+    return admin ? admin.email : process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com';
+  } catch (error) {
+    console.error('Error fetching admin email:', error);
+    return process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com';
+  }
+}
 
 if (isCloudinaryConfigured) {
   cloudinary.config({
@@ -330,7 +342,7 @@ app.get('/api/admin/proposals', async (req, res) => {
 // Create a new card proposal
 app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
   try {
-    const { name, email, attributes, tier, description } = req.body;
+    const { name, email, attributes, tier, description, birthDate, deathDate } = req.body;
     
     if (!name || !email || !attributes || !tier || !description) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -352,6 +364,8 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
         attributes: attributes, // Store as JSON string
         tier,
         description,
+        birthDate: birthDate ? `${birthDate}-01-01` : null,
+        deathDate: deathDate ? `${deathDate}-01-01` : null,
         status: 'pending'
       }
     });
@@ -361,6 +375,19 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
       ...proposal,
       attributes: JSON.parse(proposal.attributes)
     };
+
+    // Send admin notification email
+    try {
+      const adminEmail = await getAdminEmail();
+      const emailResult = await emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
+      if (emailResult.success) {
+        console.log('Admin notification email sent successfully');
+      } else {
+        console.error('Failed to send admin notification email:', emailResult.error);
+      }
+    } catch (error) {
+      console.error('Error sending admin notification email:', error);
+    }
 
     res.status(201).json(proposalWithParsedAttributes);
   } catch (error) {
@@ -389,6 +416,8 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
         attributes: proposal.attributes, // Keep as JSON string
         tier: proposal.tier,
         description: proposal.description,
+        birthDate: proposal.birthDate,
+        deathDate: proposal.deathDate,
         status: 'approved'
       }
     });
@@ -404,6 +433,18 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
       ...newCard,
       attributes: JSON.parse(newCard.attributes)
     };
+
+    // Send approval email to proposer
+    try {
+      const emailResult = await emailService.sendProposalApprovalEmail(proposal);
+      if (emailResult.success) {
+        console.log('Proposal approval email sent successfully');
+      } else {
+        console.error('Failed to send proposal approval email:', emailResult.error);
+      }
+    } catch (error) {
+      console.error('Error sending proposal approval email:', error);
+    }
     
     res.json(cardWithParsedAttributes);
   } catch (error) {
@@ -428,7 +469,63 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
       data: { status: 'rejected' }
     });
 
+    // Send rejection email to proposer
+    try {
+      const emailResult = await emailService.sendProposalRejectionEmail(proposal);
+      if (emailResult.success) {
+        console.log('Proposal rejection email sent successfully');
+      } else {
+        console.error('Failed to send proposal rejection email:', emailResult.error);
+      }
+    } catch (error) {
+      console.error('Error sending proposal rejection email:', error);
+    }
+
     res.json({ message: 'Proposal rejected' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Get admin settings
+app.get('/api/admin/settings', async (req, res) => {
+  try {
+    const admin = await prisma.admin.findFirst();
+    if (!admin) {
+      return res.json({ email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com' });
+    }
+    res.json({ email: admin.email });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Update admin email
+app.put('/api/admin/settings', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+
+    // Check if admin exists
+    let admin = await prisma.admin.findFirst();
+    
+    if (admin) {
+      // Update existing admin
+      admin = await prisma.admin.update({
+        where: { id: admin.id },
+        data: { email }
+      });
+    } else {
+      // Create new admin
+      admin = await prisma.admin.create({
+        data: { email }
+      });
+    }
+
+    res.json({ email: admin.email });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -448,13 +545,15 @@ app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
     console.log('File mimetype:', req.file?.mimetype);
     
     const { id } = req.params;
-    const { name, attributes, tier, description } = req.body;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
     
     const updateData = {};
     if (name) updateData.name = name;
     if (attributes) updateData.attributes = attributes; // Store as JSON string
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
+    if (birthDate !== undefined) updateData.birthDate = birthDate ? `${birthDate}-01-01` : null;
+    if (deathDate !== undefined) updateData.deathDate = deathDate ? `${deathDate}-01-01` : null;
     if (req.file) {
       updateData.image = getImageUrl(req.file);
       console.log('Card image updated:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
@@ -502,7 +601,7 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
     console.log('File mimetype:', req.file?.mimetype);
     console.log('Cloudinary configured:', isCloudinaryConfigured);
     
-    const { name, attributes, tier, description } = req.body;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
     
     // Validate required fields
     if (!name || !attributes || !tier || !description) {
@@ -542,6 +641,8 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
         attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes), // Store as JSON string
         tier,
         description,
+        birthDate: birthDate ? `${birthDate}-01-01` : null,
+        deathDate: deathDate ? `${deathDate}-01-01` : null,
         status: 'approved'
       }
     });

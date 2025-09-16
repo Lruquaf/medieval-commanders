@@ -105,6 +105,29 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
               </div>
             </div>
 
+            {/* Birth and Death Dates - Above Image */}
+            {(card.birthDate || card.deathDate) && (
+              <div className="modal-dates">
+                <div className="modal-date-range">
+                  {(() => {
+                    const birthYear = card.birthDate ? 
+                      (card.birthDate.includes('-') ? card.birthDate.split('-')[0] : card.birthDate) : null;
+                    const deathYear = card.deathDate ? 
+                      (card.deathDate.includes('-') ? card.deathDate.split('-')[0] : card.deathDate) : null;
+                    
+                    if (birthYear && deathYear) {
+                      return `${birthYear}-${deathYear}`;
+                    } else if (birthYear) {
+                      return `Born: ${birthYear}`;
+                    } else if (deathYear) {
+                      return `Died: ${deathYear}`;
+                    }
+                    return null;
+                  })()}
+                </div>
+              </div>
+            )}
+
             <img 
               src={getImageUrl(card.image)} 
               alt={card.name}
@@ -113,6 +136,8 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
                 e.target.src = '/placeholder-commander.svg';
               }}
             />
+
+            <p className="modal-description">{card.description}</p>
 
             <div className="modal-attributes">
               <div className="modal-attribute">
@@ -148,8 +173,6 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
                 <span className="modal-attribute-value">{card.attributes.health}</span>
               </div>
             </div>
-
-            <p className="modal-description">{card.description}</p>
           </div>
         </div>,
         document.body

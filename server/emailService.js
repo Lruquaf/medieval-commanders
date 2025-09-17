@@ -45,15 +45,13 @@ class EmailService {
       }
 
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false, // 587 için false, 465 için true
         auth: {
           user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS // Use app password for Gmail
-        },
-        // Simplified timeout settings
-        connectionTimeout: 30000, // 30 seconds
-        greetingTimeout: 15000,   // 15 seconds
-        socketTimeout: 30000,     // 30 seconds
+          pass: process.env.EMAIL_PASS // App Password
+        }
       });
       
       // Set as configured initially, verification will happen on first email send
@@ -168,30 +166,13 @@ class EmailService {
         html
       };
 
-      // Add timeout to the sendMail operation
-      const sendMailPromise = this.transporter.sendMail(mailOptions);
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Email send timeout')), 30000); // 30 second timeout
-      });
-
-      const info = await Promise.race([sendMailPromise, timeoutPromise]);
+      console.log('📤 Sending email...');
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully:', info.messageId);
       
-      // For Ethereal Email, log the preview URL
-      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local') {
-        const previewUrl = nodemailer.getTestMessageUrl(info);
-        if (previewUrl) {
-          console.log('Email preview URL:', previewUrl);
-        }
-      }
-
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error('Failed to send email:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        command: error.command
-      });
+      console.error('❌ Failed to send email:', error.message);
       return { success: false, error: error.message };
     }
   }

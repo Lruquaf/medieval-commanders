@@ -452,15 +452,9 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
     setImmediate(async () => {
       try {
         const adminEmail = await getAdminEmail();
-        console.log('📧 Attempting to send admin notification email...');
+        console.log('📧 Sending admin notification email...');
         
-        // Set a timeout for email sending
-        const emailPromise = emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email timeout')), 30000)
-        );
-        
-        const emailResult = await Promise.race([emailPromise, timeoutPromise]);
+        const emailResult = await emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
         
         if (emailResult.success) {
           console.log('✅ Admin notification email sent successfully');
@@ -469,7 +463,6 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
         }
       } catch (error) {
         console.error('❌ Error sending admin notification email:', error.message);
-        // Don't throw error, just log it
       }
     });
 

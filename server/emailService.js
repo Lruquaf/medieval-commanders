@@ -26,19 +26,23 @@ class EmailService {
       return;
     }
 
-    // Python kodundan ilham alarak basit SMTP konfigürasyonu
+    // ChatGPT'nin önerdiği gelişmiş Gmail konfigürasyonu
     this.transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // 587 için false
+      host: 'smtp.gmail.com',
+      // Tercihen 465 deneyin; olmazsa 587'ye geçin:
+      port: 465,
+      secure: true, // 465 için true
+      requireTLS: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS // App Password
       },
-      // Python'daki starttls() gibi
-      tls: {
-        ciphers: 'SSLv3'
-      }
+      tls: { minVersion: 'TLSv1.2' },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      logger: true,
+      debug: true
     });
     
     this.isConfigured = true;
@@ -61,7 +65,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || 'noreply@medievalcommanders.com',
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER, // ⭐
         to,
         subject,
         text,

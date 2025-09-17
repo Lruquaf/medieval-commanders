@@ -34,12 +34,26 @@ else
 fi
 
 # Verify email service packages
-if [ -d "server/node_modules/nodemailer" ]; then
-    echo "✓ Nodemailer package found"
-else
-    echo "✗ Nodemailer package not found, installing..."
-    cd server && npm install nodemailer && cd ..
+echo "Installing/verifying email service packages..."
+cd server
+
+# Core email packages
+if [ ! -d "node_modules/nodemailer" ]; then
+    echo "Installing nodemailer..."
+    npm install nodemailer
 fi
+
+# Install Resend if using it
+if [ "$EMAIL_SERVICE" = "resend" ]; then
+    if [ ! -d "node_modules/resend" ]; then
+        echo "Installing resend package..."
+        npm install resend
+    fi
+    echo "✓ Resend package ready"
+fi
+
+echo "✓ Email service packages verified"
+cd ..
 
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
@@ -57,12 +71,38 @@ echo "Checking email service configuration..."
 if [ -z "$EMAIL_SERVICE" ]; then
     echo "WARNING: EMAIL_SERVICE environment variable is not set!"
     echo "Email notifications will not work. Please set EMAIL_SERVICE in Railway dashboard."
-    echo "Options: sendgrid, ses, mailgun, smtp, gmail, or ethereal"
+    echo "🏆 Recommended options: resend, brevo"
+    echo "📧 Other options: sendgrid, ses, mailgun, smtp, gmail, ethereal"
+    echo ""
+    echo "📖 See server/env.railway.example for setup instructions"
 else
     echo "✓ EMAIL_SERVICE is set to: $EMAIL_SERVICE"
     
     # Check for required email service variables
     case "$EMAIL_SERVICE" in
+        "resend")
+            if [ -z "$RESEND_API_KEY" ]; then
+                echo "❌ ERROR: RESEND_API_KEY is not set!"
+                echo "📋 Setup: Sign up at https://resend.com and get your API key"
+                echo "💡 Add RESEND_API_KEY to Railway environment variables"
+            else
+                echo "✅ RESEND_API_KEY is set (Recommended choice!)"
+            fi
+            ;;
+        "brevo"|"sendinblue")
+            if [ -z "$BREVO_API_KEY" ]; then
+                echo "❌ ERROR: BREVO_API_KEY is not set!"
+                echo "📋 Setup: Sign up at https://brevo.com and get your API key"
+                echo "💡 Add BREVO_API_KEY and BREVO_SMTP_USER to Railway environment variables"
+            else
+                echo "✅ BREVO_API_KEY is set"
+                if [ -z "$BREVO_SMTP_USER" ]; then
+                    echo "⚠️  WARNING: BREVO_SMTP_USER is not set!"
+                else
+                    echo "✅ BREVO_SMTP_USER is set"
+                fi
+            fi
+            ;;
         "sendgrid")
             if [ -z "$SENDGRID_API_KEY" ]; then
                 echo "WARNING: SENDGRID_API_KEY is not set!"
@@ -99,7 +139,11 @@ else
             fi
             ;;
         "ethereal")
-            echo "✓ Using Ethereal Email for testing"
+            echo "⚠️  Using Ethereal Email for testing (not recommended for production)"
+            ;;
+        *)
+            echo "❌ Unknown EMAIL_SERVICE: $EMAIL_SERVICE"
+            echo "🏆 Recommended: resend, brevo"
             ;;
     esac
 fi

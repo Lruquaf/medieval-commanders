@@ -3,84 +3,189 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.service = null;
+    this.resend = null;
     this.isConfigured = false;
     this.init();
   }
 
   init() {
-    // Sadece Gmail kullan
-    this.setupGmail();
+    const emailService = process.env.EMAIL_SERVICE?.toLowerCase();
+    
+    switch (emailService) {
+      case 'resend':
+        this.setupResend();
+        break;
+      case 'brevo':
+      case 'sendinblue':
+        this.setupBrevo();
+        break;
+      case 'ethereal':
+        this.setupEthereal();
+        break;
+      case 'mailersend':
+        this.setupMailerSend();
+        break;
+      default:
+        this.setupEthereal(); // Default to Ethereal for testing
+        break;
+    }
   }
 
-  setupGmail() {
-    console.log('🔧 Setting up Gmail email service...');
-    console.log('Gmail config check:', {
-      user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
-      pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
-      from: process.env.EMAIL_FROM ? 'SET' : 'NOT SET'
-    });
-
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error('❌ Gmail configuration incomplete. EMAIL_USER and EMAIL_PASS are required.');
+  async setupResend() {
+    console.log('🔧 Setting up Resend email service...');
+    
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ Resend configuration incomplete. RESEND_API_KEY is required.');
       this.isConfigured = false;
       return;
     }
 
-    // ChatGPT'nin önerdiği gelişmiş Gmail konfigürasyonu
+    try {
+      // Dynamically import Resend (it's an ES module)
+      const { Resend } = await import('resend');
+      this.resend = new Resend(process.env.RESEND_API_KEY);
+      this.service = 'resend';
+      this.isConfigured = true;
+      console.log('✅ Resend configured successfully');
+    } catch (error) {
+      console.error('❌ Failed to load Resend:', error.message);
+      console.log('📦 Make sure you have installed resend: npm install resend');
+      this.isConfigured = false;
+    }
+  }
+
+  setupBrevo() {
+    console.log('🔧 Setting up Brevo (Sendinblue) email service...');
+    
+    if (!process.env.BREVO_API_KEY) {
+      console.error('❌ Brevo configuration incomplete. BREVO_API_KEY is required.');
+      this.isConfigured = false;
+      return;
+    }
+
     this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      // Tercihen 465 deneyin; olmazsa 587'ye geçin:
-      port: 465,
-      secure: true, // 465 için true
-      requireTLS: true,
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // App Password
-      },
-      tls: { minVersion: 'TLSv1.2' },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      logger: true,
-      debug: true
+        user: process.env.BREVO_SMTP_USER || process.env.EMAIL_FROM?.split('<')[1]?.split('>')[0] || 'your-email@example.com',
+        pass: process.env.BREVO_API_KEY
+      }
     });
     
+    this.service = 'brevo';
     this.isConfigured = true;
-    console.log('✅ Gmail transporter created successfully');
+    console.log('✅ Brevo configured successfully');
+  }
+
+  setupMailerSend() {
+    console.log('🔧 Setting up MailerSend email service...');
+    
+    if (!process.env.MAILERSEND_API_KEY) {
+      console.error('❌ MailerSend configuration incomplete. MAILERSEND_API_KEY is required.');
+      this.isConfigured = false;
+      return;
+    }
+
+    this.transporter = nodemailer.createTransport({
+      host: 'smtp.mailersend.net',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'MS_SMTP',
+        pass: process.env.MAILERSEND_API_KEY
+      }
+    });
+    
+    this.service = 'mailersend';
+    this.isConfigured = true;
+    console.log('✅ MailerSend configured successfully');
+  }
+
+  async setupEthereal() {
+    console.log('🔧 Setting up Ethereal email service (for testing)...');
+    
+    try {
+      // Create Ethereal test account
+      const testAccount = await nodemailer.createTestAccount();
+      
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
+      
+      this.service = 'ethereal';
+      this.isConfigured = true;
+      console.log('✅ Ethereal configured successfully');
+      console.log('📧 Ethereal credentials:', { user: testAccount.user, pass: testAccount.pass });
+    } catch (error) {
+      console.error('❌ Failed to setup Ethereal:', error.message);
+      this.isConfigured = false;
+    }
   }
 
   async sendEmail(to, subject, html, text = '') {
-    if (!this.isConfigured || !this.transporter) {
+    if (!this.isConfigured) {
       console.error('Email service not configured');
       return { success: false, error: 'Email service not configured' };
     }
 
-    // Log email configuration for debugging
-    console.log('📧 Email service configuration:');
-    console.log('- Service: gmail');
-    console.log('- User:', process.env.EMAIL_USER);
-    console.log('- From:', process.env.EMAIL_FROM);
+    console.log(`📧 Sending email via ${this.service}:`);
     console.log('- To:', to);
     console.log('- Subject:', subject);
+    console.log('- From:', process.env.EMAIL_FROM);
 
     try {
-      const mailOptions = {
-        from: process.env.EMAIL_FROM || process.env.EMAIL_USER, // ⭐
-        to,
-        subject,
-        text,
-        html
-      };
-
-      console.log('📤 Sending email...');
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('✅ Email sent successfully:', info.messageId);
-      
-      return { success: true, messageId: info.messageId };
+      if (this.service === 'resend' && this.resend) {
+        return await this.sendViaResend(to, subject, html, text);
+      } else if (this.transporter) {
+        return await this.sendViaNodemailer(to, subject, html, text);
+      } else {
+        throw new Error('No email transporter available');
+      }
     } catch (error) {
-      console.error('❌ Failed to send email:', error.message);
+      console.error(`❌ Failed to send email via ${this.service}:`, error.message);
       return { success: false, error: error.message };
     }
+  }
+
+  async sendViaResend(to, subject, html, text) {
+    const result = await this.resend.emails.send({
+      from: process.env.EMAIL_FROM || 'Medieval Commanders <onboarding@resend.dev>',
+      to: [to],
+      subject: subject,
+      html: html,
+      text: text || undefined
+    });
+
+    console.log('✅ Email sent successfully via Resend:', result.data?.id);
+    return { success: true, messageId: result.data?.id };
+  }
+
+  async sendViaNodemailer(to, subject, html, text) {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || 'Medieval Commanders <test@ethereal.email>',
+      to,
+      subject,
+      text,
+      html
+    };
+
+    const info = await this.transporter.sendMail(mailOptions);
+    
+    // For Ethereal, show preview URL
+    if (this.service === 'ethereal') {
+      console.log('🔗 Email preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+    
+    console.log(`✅ Email sent successfully via ${this.service}:`, info.messageId);
+    return { success: true, messageId: info.messageId, previewUrl: nodemailer.getTestMessageUrl(info) };
   }
 
   async sendProposalApprovalEmail(proposal) {

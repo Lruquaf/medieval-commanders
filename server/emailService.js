@@ -44,6 +44,7 @@ class EmailService {
         return;
       }
 
+      // Python kodundan ilham alarak basit SMTP konfigürasyonu
       this.transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -51,6 +52,10 @@ class EmailService {
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS // App Password
+        },
+        // Python'daki starttls() gibi
+        tls: {
+          ciphers: 'SSLv3'
         }
       });
       

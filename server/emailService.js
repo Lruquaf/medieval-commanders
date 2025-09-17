@@ -16,6 +16,9 @@ class EmailService {
       case 'resend':
         this.setupResend();
         break;
+      case 'sendgrid':
+        this.setupSendGrid();
+        break;
       case 'brevo':
       case 'sendinblue':
         this.setupBrevo();
@@ -57,6 +60,28 @@ class EmailService {
       console.log('📦 Make sure you have installed resend: npm install resend');
       this.isConfigured = false;
     }
+  }
+
+  setupSendGrid() {
+    console.log('🔧 Setting up SendGrid email service...');
+    
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('❌ SendGrid configuration incomplete. SENDGRID_API_KEY is required.');
+      this.isConfigured = false;
+      return;
+    }
+
+    this.transporter = nodemailer.createTransporter({
+      service: 'SendGrid',
+      auth: {
+        user: 'apikey',
+        pass: process.env.SENDGRID_API_KEY
+      }
+    });
+    
+    this.service = 'sendgrid';
+    this.isConfigured = true;
+    console.log('✅ SendGrid configured successfully');
   }
 
   setupBrevo() {
@@ -177,12 +202,21 @@ class EmailService {
 
       console.log('📧 Resend API Response:', JSON.stringify(result, null, 2));
       
-      if (result.data && result.data.id) {
-        console.log('✅ Email sent successfully via Resend:', result.data.id);
+      // Check different possible response formats
+      if (result && result.id) {
+        console.log('✅ Email sent successfully via Resend (direct id):', result.id);
+        return { success: true, messageId: result.id };
+      } else if (result && result.data && result.data.id) {
+        console.log('✅ Email sent successfully via Resend (data.id):', result.data.id);
         return { success: true, messageId: result.data.id };
+      } else if (result && result.success) {
+        console.log('✅ Email sent successfully via Resend (success flag):', result);
+        return { success: true, messageId: result.messageId || 'unknown' };
       } else {
         console.error('❌ Resend API returned unexpected response format:', result);
-        return { success: false, error: 'Unexpected response format from Resend API' };
+        console.error('❌ Response keys:', Object.keys(result || {}));
+        console.error('❌ Response type:', typeof result);
+        return { success: false, error: 'Unexpected response format from Resend API: ' + JSON.stringify(result) };
       }
     } catch (error) {
       console.error('❌ Resend API error:', error);

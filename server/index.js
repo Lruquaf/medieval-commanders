@@ -514,17 +514,7 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
       attributes: JSON.parse(newCard.attributes)
     };
 
-    // Send approval email to proposer
-    try {
-      const emailResult = await emailService.sendProposalApprovalEmail(proposal);
-      if (emailResult.success) {
-        console.log('Proposal approval email sent successfully');
-      } else {
-        console.error('Failed to send proposal approval email:', emailResult.error);
-      }
-    } catch (error) {
-      console.error('Error sending proposal approval email:', error);
-    }
+    // Proposal approved - no email notification to user
     
     res.json(cardWithParsedAttributes);
   } catch (error) {
@@ -549,17 +539,7 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
       data: { status: 'rejected' }
     });
 
-    // Send rejection email to proposer
-    try {
-      const emailResult = await emailService.sendProposalRejectionEmail(proposal);
-      if (emailResult.success) {
-        console.log('Proposal rejection email sent successfully');
-      } else {
-        console.error('Failed to send proposal rejection email:', emailResult.error);
-      }
-    } catch (error) {
-      console.error('Error sending proposal rejection email:', error);
-    }
+    // Proposal rejected - no email notification to user
 
     res.json({ message: 'Proposal rejected' });
   } catch (error) {

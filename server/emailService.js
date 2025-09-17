@@ -71,7 +71,7 @@ class EmailService {
       return;
     }
 
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       service: 'SendGrid',
       auth: {
         user: 'apikey',

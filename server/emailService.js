@@ -8,144 +8,41 @@ class EmailService {
   }
 
   init() {
-    // Check if EMAIL_SERVICE is set to determine configuration
-    if (process.env.EMAIL_SERVICE === 'ethereal') {
-      this.setupEtherealEmail();
-    } else if (process.env.EMAIL_SERVICE === 'gmail' || process.env.EMAIL_SERVICE === 'mailtrap') {
-      this.setupLocalEmail();
-    } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local') {
-      this.setupLocalEmail();
-    } else {
-      // For production, use real SMTP or email service
-      this.setupProductionEmail();
-    }
-    
-    // If Gmail fails, fallback to Ethereal
-    // this.setupFallbackEmail(); // Commented out for now
+    // Sadece Gmail kullan
+    this.setupGmail();
   }
 
-  setupLocalEmail() {
-    // For local development, you can use:
-    // 1. Gmail with app password
-    // 2. Mailtrap for testing
-    // 3. Ethereal Email for testing (creates fake accounts)
-    
-    if (process.env.EMAIL_SERVICE === 'gmail') {
-      console.log('🔧 Setting up Gmail email service...');
-      console.log('Gmail config check:', {
-        user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
-        pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
-        from: process.env.EMAIL_FROM ? 'SET' : 'NOT SET'
-      });
+  setupGmail() {
+    console.log('🔧 Setting up Gmail email service...');
+    console.log('Gmail config check:', {
+      user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+      pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+      from: process.env.EMAIL_FROM ? 'SET' : 'NOT SET'
+    });
 
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error('❌ Gmail configuration incomplete. EMAIL_USER and EMAIL_PASS are required.');
-        this.isConfigured = false;
-        return;
-      }
-
-      // Python kodundan ilham alarak basit SMTP konfigürasyonu
-      this.transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // 587 için false, 465 için true
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS // App Password
-        },
-        // Python'daki starttls() gibi
-        tls: {
-          ciphers: 'SSLv3'
-        }
-      });
-      
-      // Set as configured initially, verification will happen on first email send
-      this.isConfigured = true;
-      console.log('✅ Gmail transporter created successfully');
-    } else if (process.env.EMAIL_SERVICE === 'mailtrap') {
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.mailtrap.io',
-        port: 2525,
-        auth: {
-          user: process.env.MAILTRAP_USER,
-          pass: process.env.MAILTRAP_PASS
-        }
-      });
-      this.isConfigured = true;
-    } else {
-      // Default to Ethereal Email for testing
-      this.setupEtherealEmail();
-    }
-  }
-
-  async setupEtherealEmail() {
-    try {
-      // Create a test account
-      const testAccount = await nodemailer.createTestAccount();
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-      this.isConfigured = true;
-      console.log('Ethereal Email configured for testing');
-      console.log('Test account:', testAccount.user);
-    } catch (error) {
-      console.error('Failed to setup Ethereal Email:', error);
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error('❌ Gmail configuration incomplete. EMAIL_USER and EMAIL_PASS are required.');
       this.isConfigured = false;
+      return;
     }
-  }
 
-  setupProductionEmail() {
-    // For production, configure with your preferred email service
-    // Examples: SendGrid, AWS SES, Mailgun, etc.
+    // Python kodundan ilham alarak basit SMTP konfigürasyonu
+    this.transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // 587 için false
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS // App Password
+      },
+      // Python'daki starttls() gibi
+      tls: {
+        ciphers: 'SSLv3'
+      }
+    });
     
-    if (process.env.EMAIL_SERVICE === 'sendgrid') {
-      this.transporter = nodemailer.createTransport({
-        service: 'SendGrid',
-        auth: {
-          user: 'apikey',
-          pass: process.env.SENDGRID_API_KEY
-        }
-      });
-      this.isConfigured = true;
-    } else if (process.env.EMAIL_SERVICE === 'ses') {
-      this.transporter = nodemailer.createTransport({
-        SES: {
-          region: process.env.AWS_REGION || 'us-east-1',
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-        }
-      });
-      this.isConfigured = true;
-    } else if (process.env.EMAIL_SERVICE === 'mailgun') {
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.mailgun.org',
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.MAILGUN_USER || `postmaster@${process.env.MAILGUN_DOMAIN}`,
-          pass: process.env.MAILGUN_API_KEY
-        }
-      });
-      this.isConfigured = true;
-    } else {
-      // Default SMTP configuration
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
-      });
-      this.isConfigured = true;
-    }
+    this.isConfigured = true;
+    console.log('✅ Gmail transporter created successfully');
   }
 
   async sendEmail(to, subject, html, text = '') {
@@ -156,7 +53,7 @@ class EmailService {
 
     // Log email configuration for debugging
     console.log('📧 Email service configuration:');
-    console.log('- Service:', process.env.EMAIL_SERVICE);
+    console.log('- Service: gmail');
     console.log('- User:', process.env.EMAIL_USER);
     console.log('- From:', process.env.EMAIL_FROM);
     console.log('- To:', to);

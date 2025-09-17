@@ -41,6 +41,10 @@ class EmailService {
       return;
     }
 
+    console.log('🔑 Resend API Key present:', !!process.env.RESEND_API_KEY);
+    console.log('🔑 Resend API Key length:', process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.length : 0);
+    console.log('🔑 Resend API Key starts with:', process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 8) + '...' : 'N/A');
+
     try {
       // Dynamically import Resend (it's an ES module)
       const { Resend } = await import('resend');
@@ -156,16 +160,40 @@ class EmailService {
   }
 
   async sendViaResend(to, subject, html, text) {
-    const result = await this.resend.emails.send({
-      from: process.env.EMAIL_FROM || 'Medieval Commanders <onboarding@resend.dev>',
-      to: [to],
-      subject: subject,
-      html: html,
-      text: text || undefined
-    });
+    try {
+      console.log('📧 Resend API call details:');
+      console.log('- From:', process.env.EMAIL_FROM || 'Medieval Commanders <onboarding@resend.dev>');
+      console.log('- To:', to);
+      console.log('- Subject:', subject);
+      console.log('- API Key present:', !!process.env.RESEND_API_KEY);
+      
+      const result = await this.resend.emails.send({
+        from: process.env.EMAIL_FROM || 'Medieval Commanders <onboarding@resend.dev>',
+        to: [to],
+        subject: subject,
+        html: html,
+        text: text || undefined
+      });
 
-    console.log('✅ Email sent successfully via Resend:', result.data?.id);
-    return { success: true, messageId: result.data?.id };
+      console.log('📧 Resend API Response:', JSON.stringify(result, null, 2));
+      
+      if (result.data && result.data.id) {
+        console.log('✅ Email sent successfully via Resend:', result.data.id);
+        return { success: true, messageId: result.data.id };
+      } else {
+        console.error('❌ Resend API returned unexpected response format:', result);
+        return { success: false, error: 'Unexpected response format from Resend API' };
+      }
+    } catch (error) {
+      console.error('❌ Resend API error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.status,
+        statusCode: error.statusCode,
+        response: error.response ? JSON.stringify(error.response, null, 2) : 'No response data'
+      });
+      return { success: false, error: error.message };
+    }
   }
 
   async sendViaNodemailer(to, subject, html, text) {

@@ -137,7 +137,8 @@ app.post('/api/test-email', async (req, res) => {
       service: process.env.EMAIL_SERVICE,
       user: process.env.EMAIL_USER,
       from: process.env.EMAIL_FROM,
-      configured: emailService.isConfigured
+      configured: emailService.isConfigured,
+      resendApiKey: process.env.RESEND_API_KEY ? 'SET' : 'NOT SET'
     });
 
     const result = await emailService.sendEmail(
@@ -146,6 +147,8 @@ app.post('/api/test-email', async (req, res) => {
       `<p>${message || 'This is a test email from Medieval Commanders system.'}</p>`,
       message || 'This is a test email from Medieval Commanders system.'
     );
+
+    console.log('📧 Test email result:', result);
 
     if (result.success) {
       console.log('✅ Test email sent successfully');

@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const emailService = require('./emailService');
 
 // Use local Prisma client
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./node_modules/.prisma/client-local');
 const prisma = new PrismaClient();
 
 const app = express();
@@ -230,8 +230,8 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
         attributes: attributes,
         tier,
         description,
-        birthDate: birthDate ? new Date(`${birthDate}-01-01`) : null,
-        deathDate: deathDate ? new Date(`${deathDate}-01-01`) : null,
+        birthYear: birthDate ? parseInt(birthDate) : null,
+        deathYear: deathDate ? parseInt(deathDate) : null,
         status: 'pending'
       }
     });
@@ -275,8 +275,8 @@ app.post('/api/admin/cards', uploadWithErrorHandling, async (req, res) => {
         attributes: typeof attributes === 'string' ? attributes : JSON.stringify(attributes),
         tier,
         description,
-        birthDate: birthDate ? new Date(`${birthDate}-01-01`) : null,
-        deathDate: deathDate ? new Date(`${deathDate}-01-01`) : null,
+        birthYear: birthDate ? parseInt(birthDate) : null,
+        deathYear: deathDate ? parseInt(deathDate) : null,
         status: 'approved'
       }
     });
@@ -304,8 +304,8 @@ app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
     if (attributes) updateData.attributes = attributes;
     if (tier) updateData.tier = tier;
     if (description) updateData.description = description;
-    if (birthDate !== undefined) updateData.birthDate = birthDate ? new Date(`${birthDate}-01-01`) : null;
-    if (deathDate !== undefined) updateData.deathDate = deathDate ? new Date(`${deathDate}-01-01`) : null;
+    if (birthDate !== undefined) updateData.birthYear = birthDate ? parseInt(birthDate) : null;
+    if (deathDate !== undefined) updateData.deathYear = deathDate ? parseInt(deathDate) : null;
     if (req.file) {
       updateData.image = getImageUrl(req.file);
     }
@@ -439,18 +439,39 @@ app.get('/api/admin/settings', async (req, res) => {
   try {
     const admin = await prisma.admin.findFirst();
     if (!admin) {
-      return res.json({ email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com' });
+      return res.json({ 
+        email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com',
+        instagramUrl: '',
+        twitterUrl: '',
+        facebookUrl: '',
+        linkedinUrl: '',
+        youtubeUrl: ''
+      });
     }
-    res.json({ email: admin.email });
+    res.json({ 
+      email: admin.email,
+      instagramUrl: admin.instagramUrl || '',
+      twitterUrl: admin.twitterUrl || '',
+      facebookUrl: admin.facebookUrl || '',
+      linkedinUrl: admin.linkedinUrl || '',
+      youtubeUrl: admin.youtubeUrl || ''
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Admin: Update admin email
+// Admin: Update admin settings
 app.put('/api/admin/settings', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { 
+      email, 
+      instagramUrl, 
+      twitterUrl, 
+      facebookUrl, 
+      linkedinUrl, 
+      youtubeUrl 
+    } = req.body;
     
     if (!email || !email.includes('@')) {
       return res.status(400).json({ error: 'Valid email address is required' });
@@ -459,20 +480,36 @@ app.put('/api/admin/settings', async (req, res) => {
     // Check if admin exists
     let admin = await prisma.admin.findFirst();
     
+    const updateData = {
+      email,
+      instagramUrl: instagramUrl || null,
+      twitterUrl: twitterUrl || null,
+      facebookUrl: facebookUrl || null,
+      linkedinUrl: linkedinUrl || null,
+      youtubeUrl: youtubeUrl || null
+    };
+    
     if (admin) {
       // Update existing admin
       admin = await prisma.admin.update({
         where: { id: admin.id },
-        data: { email }
+        data: updateData
       });
     } else {
       // Create new admin
       admin = await prisma.admin.create({
-        data: { email }
+        data: updateData
       });
     }
 
-    res.json({ email: admin.email });
+    res.json({ 
+      email: admin.email,
+      instagramUrl: admin.instagramUrl || '',
+      twitterUrl: admin.twitterUrl || '',
+      facebookUrl: admin.facebookUrl || '',
+      linkedinUrl: admin.linkedinUrl || '',
+      youtubeUrl: admin.youtubeUrl || ''
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -65,13 +65,19 @@ const CollectionGallery = () => {
         aValue = a.name.toLowerCase();
         bValue = b.name.toLowerCase();
         break;
-      case 'birthDate':
-        aValue = a.birthDate ? parseInt(a.birthDate.split('-')[0] || a.birthDate) : 0;
-        bValue = b.birthDate ? parseInt(b.birthDate.split('-')[0] || b.birthDate) : 0;
+      case 'birthYear':
+        aValue = a.birthYear || 0;
+        bValue = b.birthYear || 0;
         break;
-      case 'deathDate':
-        aValue = a.deathDate ? parseInt(a.deathDate.split('-')[0] || a.deathDate) : 0;
-        bValue = b.deathDate ? parseInt(b.deathDate.split('-')[0] || b.deathDate) : 0;
+      case 'deathYear':
+        aValue = a.deathYear || 0;
+        bValue = b.deathYear || 0;
+        break;
+      case 'tier':
+        // Define tier order for proper sorting
+        const tierOrder = { 'Common': 1, 'Rare': 2, 'Epic': 3, 'Legendary': 4, 'Mythic': 5 };
+        aValue = tierOrder[a.tier] || 0;
+        bValue = tierOrder[b.tier] || 0;
         break;
       default:
         aValue = a.name.toLowerCase();
@@ -147,8 +153,9 @@ const CollectionGallery = () => {
               className="sort-select"
             >
               <option value="name">Name</option>
-              <option value="birthDate">Birth Date</option>
-              <option value="deathDate">Death Date</option>
+              <option value="birthYear">Birth Year</option>
+              <option value="deathYear">Death Year</option>
+              <option value="tier">Tier</option>
             </select>
           </div>
           

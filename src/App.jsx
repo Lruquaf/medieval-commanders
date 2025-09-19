@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import CollectionGallery from './pages/CollectionGallery';
 import CreateProposal from './pages/CreateProposal';
 import AdminPanel from './pages/AdminPanel';
@@ -47,6 +48,7 @@ function AppContent() {
         <Route path="/propose" element={<CreateProposal />} />
         <Route path="/admin" element={<AdminPanel />} />
       </Routes>
+      {!isAdminPage && <Footer />}
     </div>
   );
 }

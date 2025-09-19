@@ -45,10 +45,15 @@ model Proposal {
 }
 
 model Admin {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  instagramUrl String?
+  twitterUrl   String?
+  facebookUrl  String?
+  linkedinUrl  String?
+  youtubeUrl   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("admins")
 }

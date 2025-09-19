@@ -552,18 +552,39 @@ app.get('/api/admin/settings', async (req, res) => {
   try {
     const admin = await prisma.admin.findFirst();
     if (!admin) {
-      return res.json({ email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com' });
+      return res.json({ 
+        email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@medievalcommanders.com',
+        instagramUrl: '',
+        twitterUrl: '',
+        facebookUrl: '',
+        linkedinUrl: '',
+        youtubeUrl: ''
+      });
     }
-    res.json({ email: admin.email });
+    res.json({ 
+      email: admin.email,
+      instagramUrl: admin.instagramUrl || '',
+      twitterUrl: admin.twitterUrl || '',
+      facebookUrl: admin.facebookUrl || '',
+      linkedinUrl: admin.linkedinUrl || '',
+      youtubeUrl: admin.youtubeUrl || ''
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Admin: Update admin email
+// Admin: Update admin settings
 app.put('/api/admin/settings', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { 
+      email, 
+      instagramUrl, 
+      twitterUrl, 
+      facebookUrl, 
+      linkedinUrl, 
+      youtubeUrl 
+    } = req.body;
     
     if (!email || !email.includes('@')) {
       return res.status(400).json({ error: 'Valid email address is required' });
@@ -572,20 +593,36 @@ app.put('/api/admin/settings', async (req, res) => {
     // Check if admin exists
     let admin = await prisma.admin.findFirst();
     
+    const updateData = {
+      email,
+      instagramUrl: instagramUrl || null,
+      twitterUrl: twitterUrl || null,
+      facebookUrl: facebookUrl || null,
+      linkedinUrl: linkedinUrl || null,
+      youtubeUrl: youtubeUrl || null
+    };
+    
     if (admin) {
       // Update existing admin
       admin = await prisma.admin.update({
         where: { id: admin.id },
-        data: { email }
+        data: updateData
       });
     } else {
       // Create new admin
       admin = await prisma.admin.create({
-        data: { email }
+        data: updateData
       });
     }
 
-    res.json({ email: admin.email });
+    res.json({ 
+      email: admin.email,
+      instagramUrl: admin.instagramUrl || '',
+      twitterUrl: admin.twitterUrl || '',
+      facebookUrl: admin.facebookUrl || '',
+      linkedinUrl: admin.linkedinUrl || '',
+      youtubeUrl: admin.youtubeUrl || ''
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -756,6 +793,24 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Card not found' });
     }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all proposals (public)
+app.get('/api/proposals', async (req, res) => {
+  try {
+    const allProposals = await prisma.proposal.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    const proposalsWithParsedAttributes = allProposals.map(proposal => ({
+      ...proposal,
+      attributes: JSON.parse(proposal.attributes)
+    }));
+    
+    res.json(proposalsWithParsedAttributes);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

@@ -29,7 +29,8 @@ class EmailService {
     console.log('🔧 Setting up Resend email service...');
     
     if (!process.env.RESEND_API_KEY) {
-      console.error('❌ Resend configuration incomplete. RESEND_API_KEY is required.');
+      console.log('⚠️  Resend configuration incomplete. RESEND_API_KEY is required.');
+      console.log('📧 Email notifications will be disabled for local development.');
       this.isConfigured = false;
       return;
     }
@@ -173,6 +174,10 @@ class EmailService {
 
 
   async sendNewProposalNotificationEmail(adminEmail, proposal) {
+    if (!this.isConfigured) {
+      console.log('📧 Email service not configured, skipping notification email');
+      return { success: false, error: 'Email service not configured' };
+    }
     const subject = 'New Commander Proposal Submitted';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

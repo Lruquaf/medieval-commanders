@@ -21,6 +21,13 @@ const AdminPanel = () => {
   const [adminEmail, setAdminEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [emailSuccess, setEmailSuccess] = useState('');
+  const [socialMediaUrls, setSocialMediaUrls] = useState({
+    instagramUrl: '',
+    twitterUrl: '',
+    facebookUrl: '',
+    linkedinUrl: '',
+    youtubeUrl: ''
+  });
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [proposalSortBy, setProposalSortBy] = useState('createdAt');
@@ -76,6 +83,13 @@ const AdminPanel = () => {
       setCards(cardsData);
       setProposals(proposalsData);
       setAdminEmail(settingsResponse.data.email || '');
+      setSocialMediaUrls({
+        instagramUrl: settingsResponse.data.instagramUrl || '',
+        twitterUrl: settingsResponse.data.twitterUrl || '',
+        facebookUrl: settingsResponse.data.facebookUrl || '',
+        linkedinUrl: settingsResponse.data.linkedinUrl || '',
+        youtubeUrl: settingsResponse.data.youtubeUrl || ''
+      });
     } catch (err) {
       setError('Failed to load admin data. Using sample data...');
       // Use sample data if API fails
@@ -127,7 +141,7 @@ const AdminPanel = () => {
     setShowDeleteModal(true);
   };
 
-  const handleEmailUpdate = async (e) => {
+  const handleSettingsUpdate = async (e) => {
     e.preventDefault();
     setEmailError('');
     setEmailSuccess('');
@@ -138,11 +152,14 @@ const AdminPanel = () => {
     }
 
     try {
-      await apiClient.put('/api/admin/settings', { email: adminEmail });
-      setEmailSuccess('Email address updated successfully!');
+      await apiClient.put('/api/admin/settings', { 
+        email: adminEmail,
+        ...socialMediaUrls
+      });
+      setEmailSuccess('Settings updated successfully!');
       setTimeout(() => setEmailSuccess(''), 3000);
     } catch (err) {
-      setEmailError('Failed to update email address');
+      setEmailError('Failed to update settings');
     }
   };
 
@@ -365,8 +382,8 @@ const AdminPanel = () => {
               >
                 <option value="createdAt">Submission Date</option>
                 <option value="name">Name</option>
-                <option value="birthDate">Birth Year</option>
-                <option value="deathDate">Death Year</option>
+                <option value="birthYear">Birth Year</option>
+                <option value="deathYear">Death Year</option>
                 <option value="tier">Tier</option>
                 <option value="status">Status</option>
               </select>
@@ -409,13 +426,13 @@ const AdminPanel = () => {
                       aValue = a.name.toLowerCase();
                       bValue = b.name.toLowerCase();
                       break;
-                    case 'birthDate':
-                      aValue = a.birthDate ? parseInt(a.birthDate.split('-')[0] || a.birthDate) : 0;
-                      bValue = b.birthDate ? parseInt(b.birthDate.split('-')[0] || b.birthDate) : 0;
+                    case 'birthYear':
+                      aValue = a.birthYear || 0;
+                      bValue = b.birthYear || 0;
                       break;
-                    case 'deathDate':
-                      aValue = a.deathDate ? parseInt(a.deathDate.split('-')[0] || a.deathDate) : 0;
-                      bValue = b.deathDate ? parseInt(b.deathDate.split('-')[0] || b.deathDate) : 0;
+                    case 'deathYear':
+                      aValue = a.deathYear || 0;
+                      bValue = b.deathYear || 0;
                       break;
                     case 'tier':
                       const tierOrder = { 'Common': 1, 'Rare': 2, 'Epic': 3, 'Legendary': 4, 'Mythic': 5 };
@@ -475,8 +492,8 @@ const AdminPanel = () => {
                     className="sort-select"
                   >
                     <option value="name">Name</option>
-                    <option value="birthDate">Birth Date</option>
-                    <option value="deathDate">Death Date</option>
+                    <option value="birthYear">Birth Year</option>
+                    <option value="deathYear">Death Year</option>
                     <option value="tier">Tier</option>
                   </select>
                 </div>
@@ -505,13 +522,13 @@ const AdminPanel = () => {
                         aValue = a.name.toLowerCase();
                         bValue = b.name.toLowerCase();
                         break;
-                      case 'birthDate':
-                        aValue = a.birthDate ? parseInt(a.birthDate.split('-')[0] || a.birthDate) : 0;
-                        bValue = b.birthDate ? parseInt(b.birthDate.split('-')[0] || b.birthDate) : 0;
+                      case 'birthYear':
+                        aValue = a.birthYear || 0;
+                        bValue = b.birthYear || 0;
                         break;
-                      case 'deathDate':
-                        aValue = a.deathDate ? parseInt(a.deathDate.split('-')[0] || a.deathDate) : 0;
-                        bValue = b.deathDate ? parseInt(b.deathDate.split('-')[0] || b.deathDate) : 0;
+                      case 'deathYear':
+                        aValue = a.deathYear || 0;
+                        bValue = b.deathYear || 0;
                         break;
                       case 'tier':
                         const tierOrder = { 'Common': 1, 'Rare': 2, 'Epic': 3, 'Legendary': 4, 'Mythic': 5 };
@@ -550,8 +567,8 @@ const AdminPanel = () => {
             <h2 className="section-title">Admin Settings</h2>
           </div>
           
-          <div className="form-container" style={{ maxWidth: '500px', margin: '0 auto' }}>
-            <form onSubmit={handleEmailUpdate}>
+          <div className="form-container" style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <form onSubmit={handleSettingsUpdate}>
               <div className="form-group">
                 <label htmlFor="adminEmail" className="form-label">
                   Admin Email Address
@@ -568,6 +585,73 @@ const AdminPanel = () => {
                   placeholder="admin@example.com"
                   required
                 />
+              </div>
+
+              <div style={{ marginTop: '2rem' }}>
+                <h3 style={{ color: '#e6d7c3', marginBottom: '1rem' }}>Social Media Links</h3>
+                <p style={{ color: '#e6d7c3', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                  These links will appear in the footer of your website.
+                </p>
+                
+                <div className="form-group">
+                  <label htmlFor="instagramUrl" className="form-label">Instagram URL</label>
+                  <input
+                    type="url"
+                    id="instagramUrl"
+                    value={socialMediaUrls.instagramUrl}
+                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, instagramUrl: e.target.value})}
+                    className="form-input"
+                    placeholder="https://instagram.com/yourusername"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="twitterUrl" className="form-label">Twitter URL</label>
+                  <input
+                    type="url"
+                    id="twitterUrl"
+                    value={socialMediaUrls.twitterUrl}
+                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, twitterUrl: e.target.value})}
+                    className="form-input"
+                    placeholder="https://twitter.com/yourusername"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="facebookUrl" className="form-label">Facebook URL</label>
+                  <input
+                    type="url"
+                    id="facebookUrl"
+                    value={socialMediaUrls.facebookUrl}
+                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, facebookUrl: e.target.value})}
+                    className="form-input"
+                    placeholder="https://facebook.com/yourpage"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="linkedinUrl" className="form-label">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    id="linkedinUrl"
+                    value={socialMediaUrls.linkedinUrl}
+                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, linkedinUrl: e.target.value})}
+                    className="form-input"
+                    placeholder="https://linkedin.com/in/yourprofile"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="youtubeUrl" className="form-label">YouTube URL</label>
+                  <input
+                    type="url"
+                    id="youtubeUrl"
+                    value={socialMediaUrls.youtubeUrl}
+                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, youtubeUrl: e.target.value})}
+                    className="form-input"
+                    placeholder="https://youtube.com/channel/yourchannel"
+                  />
+                </div>
               </div>
 
               {emailError && (
@@ -590,7 +674,7 @@ const AdminPanel = () => {
               )}
 
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                Update Email Address
+                Update Settings
               </button>
             </form>
 

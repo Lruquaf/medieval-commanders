@@ -169,6 +169,150 @@ if [ -n "$DATABASE_URL" ]; then
     echo "Connecting to: $DB_HOST:$DB_PORT/$DB_NAME"
 fi
 
+# ===== MIGRATION SECTION =====
+echo "🔧 Starting database migration process..."
+
+# Check if migration has already been completed
+MIGRATION_FLAG_FILE="/tmp/medieval_commanders_migration_completed"
+
+if [ -f "$MIGRATION_FLAG_FILE" ]; then
+    echo "✅ Migration already completed, skipping..."
+else
+    echo "🚀 Running one-time database migration..."
+    
+    # Run the migration SQL directly
+    echo "Running migration SQL..."
+    cat > migration.sql << 'EOF'
+-- Complete schema migration
+-- Handles birthDate→birthYear, deathDate→deathYear, and social media fields
+
+-- Step 1: Add new year columns if they don't exist
+DO $$ 
+BEGIN
+    -- Add birthYear to cards if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cards' AND column_name = 'birthYear') THEN
+        ALTER TABLE "cards" ADD COLUMN "birthYear" INTEGER;
+        RAISE NOTICE 'Added birthYear column to cards table';
+    END IF;
+    
+    -- Add deathYear to cards if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cards' AND column_name = 'deathYear') THEN
+        ALTER TABLE "cards" ADD COLUMN "deathYear" INTEGER;
+        RAISE NOTICE 'Added deathYear column to cards table';
+    END IF;
+    
+    -- Add birthYear to proposals if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'proposals' AND column_name = 'birthYear') THEN
+        ALTER TABLE "proposals" ADD COLUMN "birthYear" INTEGER;
+        RAISE NOTICE 'Added birthYear column to proposals table';
+    END IF;
+    
+    -- Add deathYear to proposals if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'proposals' AND column_name = 'deathYear') THEN
+        ALTER TABLE "proposals" ADD COLUMN "deathYear" INTEGER;
+        RAISE NOTICE 'Added deathYear column to proposals table';
+    END IF;
+END $$;
+
+-- Step 2: Convert existing date data to years (if birthDate/deathDate exist)
+DO $$ 
+BEGIN
+    -- Convert cards birthDate to birthYear
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cards' AND column_name = 'birthDate') THEN
+        UPDATE "cards" 
+        SET "birthYear" = EXTRACT(YEAR FROM "birthDate")::INTEGER 
+        WHERE "birthDate" IS NOT NULL AND "birthYear" IS NULL;
+        RAISE NOTICE 'Converted cards birthDate to birthYear';
+    END IF;
+    
+    -- Convert cards deathDate to deathYear
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'cards' AND column_name = 'deathDate') THEN
+        UPDATE "cards" 
+        SET "deathYear" = EXTRACT(YEAR FROM "deathDate")::INTEGER 
+        WHERE "deathDate" IS NOT NULL AND "deathYear" IS NULL;
+        RAISE NOTICE 'Converted cards deathDate to deathYear';
+    END IF;
+    
+    -- Convert proposals birthDate to birthYear
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'proposals' AND column_name = 'birthDate') THEN
+        UPDATE "proposals" 
+        SET "birthYear" = EXTRACT(YEAR FROM "birthDate")::INTEGER 
+        WHERE "birthDate" IS NOT NULL AND "birthYear" IS NULL;
+        RAISE NOTICE 'Converted proposals birthDate to birthYear';
+    END IF;
+    
+    -- Convert proposals deathDate to deathYear
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'proposals' AND column_name = 'deathDate') THEN
+        UPDATE "proposals" 
+        SET "deathYear" = EXTRACT(YEAR FROM "deathDate")::INTEGER 
+        WHERE "deathDate" IS NOT NULL AND "deathYear" IS NULL;
+        RAISE NOTICE 'Converted proposals deathDate to deathYear';
+    END IF;
+END $$;
+
+-- Step 3: Add social media fields to admins table
+DO $$ 
+BEGIN
+    -- Add social media fields if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'instagramUrl') THEN
+        ALTER TABLE "admins" ADD COLUMN "instagramUrl" TEXT;
+        RAISE NOTICE 'Added instagramUrl column to admins table';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'twitterUrl') THEN
+        ALTER TABLE "admins" ADD COLUMN "twitterUrl" TEXT;
+        RAISE NOTICE 'Added twitterUrl column to admins table';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'facebookUrl') THEN
+        ALTER TABLE "admins" ADD COLUMN "facebookUrl" TEXT;
+        RAISE NOTICE 'Added facebookUrl column to admins table';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'linkedinUrl') THEN
+        ALTER TABLE "admins" ADD COLUMN "linkedinUrl" TEXT;
+        RAISE NOTICE 'Added linkedinUrl column to admins table';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'youtubeUrl') THEN
+        ALTER TABLE "admins" ADD COLUMN "youtubeUrl" TEXT;
+        RAISE NOTICE 'Added youtubeUrl column to admins table';
+    END IF;
+END $$;
+
+-- Step 4: Verify migration
+SELECT 'Migration completed successfully' as status;
+EOF
+
+    # Execute the migration
+    if command -v psql >/dev/null 2>&1; then
+        echo "Executing migration with psql..."
+        PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p') psql "$DATABASE_URL" -f migration.sql
+        if [ $? -eq 0 ]; then
+            echo "✅ Migration completed successfully!"
+            # Create flag file to prevent re-running
+            touch "$MIGRATION_FLAG_FILE"
+        else
+            echo "❌ Migration failed, but continuing with deployment..."
+        fi
+    else
+        echo "⚠️ psql not available, trying with Prisma..."
+        # Alternative: Use Prisma to execute SQL
+        npx prisma db execute --file migration.sql --schema=./prisma/schema.railway.prisma
+        if [ $? -eq 0 ]; then
+            echo "✅ Migration completed successfully!"
+            touch "$MIGRATION_FLAG_FILE"
+        else
+            echo "❌ Migration failed, but continuing with deployment..."
+        fi
+    fi
+    
+    # Clean up migration file
+    rm -f migration.sql
+fi
+
+# ===== END MIGRATION SECTION =====
+
 # Generate Prisma client in server directory
 echo "Generating Prisma client in server directory..."
 cd server && npx prisma generate --schema=./schema.prisma && cd ..

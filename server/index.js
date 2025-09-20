@@ -89,7 +89,9 @@ try {
         allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
         transformation: [
           { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
-        ]
+        ],
+        timeout: 60000, // 60 seconds timeout for Cloudinary
+        resource_type: 'auto'
       }
     });
     console.log('✅ Cloudinary storage configured successfully');
@@ -224,13 +226,28 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fieldSize: 10 * 1024 * 1024 // 10MB for other fields
   }
 });
 
 // Add multer error handling directly to upload
 const uploadWithErrorHandling = (req, res, next) => {
+  // Set longer timeout for mobile uploads
+  const timeoutMs = 90000; // 90 seconds
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error('Upload timeout after', timeoutMs, 'ms');
+      res.status(408).json({ 
+        error: 'Upload timeout. Please try again with a smaller image or better connection.',
+        code: 'UPLOAD_TIMEOUT'
+      });
+    }
+  }, timeoutMs);
+
   upload.single('image')(req, res, (err) => {
+    clearTimeout(timeout); // Clear timeout on completion
+    
     if (err) {
       console.error('Multer error in middleware:', err);
       console.error('Error message:', err.message);
@@ -246,6 +263,22 @@ const uploadWithErrorHandling = (req, res, next) => {
       }
       if (err.message === 'Only image files are allowed!') {
         return res.status(400).json({ error: 'Only image files are allowed!' });
+      }
+      
+      // Handle timeout errors specifically
+      if (err.name === 'TimeoutError' || err.message.includes('Request Timeout')) {
+        return res.status(408).json({ 
+          error: 'Upload timeout. Please try again with a smaller image or better connection.',
+          code: 'UPLOAD_TIMEOUT'
+        });
+      }
+      
+      // Handle server errors (502, 503, etc.)
+      if (err.name === 'UnexpectedResponse' || err.message.includes('502') || err.message.includes('503')) {
+        return res.status(502).json({ 
+          error: 'Upload service temporarily unavailable. Please try again in a few moments.',
+          code: 'SERVICE_UNAVAILABLE'
+        });
       }
       
       // Handle Cloudinary-specific errors

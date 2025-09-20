@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getOptimizedImage } from '../utils/imageCompression';
 
 const CardForm = ({ card, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -23,6 +24,8 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     if (card) {
@@ -69,16 +72,30 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(file);
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Optimize image for mobile uploads
+        const optimizedFile = await getOptimizedImage(file);
+        setImage(optimizedFile);
+        
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(optimizedFile);
+      } catch (error) {
+        console.error('Error optimizing image:', error);
+        // Fallback to original file
+        setImage(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -87,46 +104,82 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     setLoading(true);
     setError(null);
 
-    try {
-      const submitData = new FormData();
-      submitData.append('name', formData.name);
-      submitData.append('attributes', JSON.stringify(formData.attributes));
-      submitData.append('tier', formData.tier);
-      submitData.append('description', formData.description);
-      submitData.append('birthDate', formData.birthYear || '');
-      submitData.append('deathDate', formData.deathYear || '');
-      
-      if (image) {
-        submitData.append('image', image);
-      }
+    // Retry logic for mobile upload issues
+    const maxRetries = 3;
+    let attempt = 0;
 
-      await onSubmit(submitData);
-    } catch (err) {
-      
-      // Extract error message from response
-      let errorMessage = 'Failed to save card';
-      if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
+    const attemptSubmit = async () => {
+      try {
+        const submitData = new FormData();
+        submitData.append('name', formData.name);
+        submitData.append('attributes', JSON.stringify(formData.attributes));
+        submitData.append('tier', formData.tier);
+        submitData.append('description', formData.description);
+        submitData.append('birthDate', formData.birthYear || '');
+        submitData.append('deathDate', formData.deathYear || '');
         
-        // Add details if available
-        if (err.response.data.details) {
-          if (typeof err.response.data.details === 'string') {
-            errorMessage += `: ${err.response.data.details}`;
-          } else if (typeof err.response.data.details === 'object') {
-            const details = Object.values(err.response.data.details).filter(Boolean);
-            if (details.length > 0) {
-              errorMessage += `: ${details.join(', ')}`;
+        if (image) {
+          submitData.append('image', image);
+        }
+
+        await onSubmit(submitData);
+      } catch (err) {
+        attempt++;
+        
+        // Check if this is a retryable error
+        const isRetryableError = 
+          err.response?.status === 408 || // Timeout
+          err.response?.status === 502 || // Bad Gateway
+          err.response?.status === 503 || // Service Unavailable
+          err.response?.data?.code === 'UPLOAD_TIMEOUT' ||
+          err.response?.data?.code === 'SERVICE_UNAVAILABLE' ||
+          err.code === 'ECONNABORTED' || // Axios timeout
+          err.code === 'NETWORK_ERROR';
+
+        if (isRetryableError && attempt < maxRetries) {
+          console.log(`Retry attempt ${attempt} for upload error:`, err.response?.data?.error || err.message);
+          setIsRetrying(true);
+          setUploadProgress(attempt * 25); // Show progress for retries
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+          return attemptSubmit();
+        }
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to save card';
+        if (err.response?.data?.error) {
+          errorMessage = err.response.data.error;
+          
+          // Add details if available
+          if (err.response.data.details) {
+            if (typeof err.response.data.details === 'string') {
+              errorMessage += `: ${err.response.data.details}`;
+            } else if (typeof err.response.data.details === 'object') {
+              const details = Object.values(err.response.data.details).filter(Boolean);
+              if (details.length > 0) {
+                errorMessage += `: ${details.join(', ')}`;
+              }
             }
           }
+          
+          // Add helpful suggestions for common errors
+          if (err.response.data.code === 'UPLOAD_TIMEOUT') {
+            errorMessage += '\n\nTip: Try using a smaller image or check your internet connection.';
+          } else if (err.response.data.code === 'SERVICE_UNAVAILABLE') {
+            errorMessage += '\n\nTip: The upload service is temporarily busy. Please try again in a moment.';
+          }
+        } else if (err.message) {
+          errorMessage = err.message;
         }
-      } else if (err.message) {
-        errorMessage = err.message;
+        
+        setError(errorMessage);
       }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    await attemptSubmit();
+    setLoading(false);
+    setUploadProgress(0);
+    setIsRetrying(false);
   };
 
   return (
@@ -161,29 +214,61 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           
           {/* Image Preview */}
           {imagePreview && (
-            <div style={{ 
-              marginBottom: '1rem', 
-              textAlign: 'center',
-              padding: '1rem',
-              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(244, 208, 63, 0.1) 100%)',
-              borderRadius: '8px',
-              border: '2px solid rgba(212, 175, 55, 0.3)'
-            }}>
-              <img 
-                src={imagePreview} 
-                alt="Preview" 
-                style={{ 
-                  maxWidth: '300px', 
-                  maxHeight: '300px', 
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
+            <div 
+              className="image-preview-container"
+              style={{ 
+                marginBottom: '1rem', 
+                textAlign: 'center',
+                padding: '1rem',
+                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(244, 208, 63, 0.1) 100%)',
+                borderRadius: '8px',
+                border: '2px solid rgba(212, 175, 55, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '200px'
+              }}
+            >
+              <div 
+                className="image-preview-wrapper"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '180px',
+                  overflow: 'hidden',
                   borderRadius: '8px',
-                  border: '2px solid rgba(212, 175, 55, 0.5)',
                   background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(139, 69, 19, 0.05))'
                 }}
-              />
-              <p style={{ marginTop: '0.5rem', color: '#d4af37', fontSize: '0.9rem' }}>
+              >
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="image-preview-img"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%', 
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    borderRadius: '6px',
+                    border: '2px solid rgba(212, 175, 55, 0.5)',
+                    display: 'block'
+                  }}
+                />
+              </div>
+              <p 
+                className="image-preview-text"
+                style={{ 
+                  marginTop: '0.5rem', 
+                  color: '#d4af37', 
+                  fontSize: '0.9rem',
+                  wordBreak: 'break-word',
+                  maxWidth: '100%'
+                }}
+              >
                 {image ? `New: ${image.name}` : 'Current Image'}
               </p>
             </div>
@@ -316,8 +401,25 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
             disabled={loading}
             className="btn btn-primary"
           >
-            {loading ? 'Saving...' : (card ? 'Update Card' : 'Create Card')}
+            {loading ? (isRetrying ? 'Retrying...' : 'Saving...') : (card ? 'Update Card' : 'Create Card')}
           </button>
+          {loading && uploadProgress > 0 && (
+            <div style={{ 
+              width: '200px', 
+              height: '4px', 
+              backgroundColor: '#333', 
+              borderRadius: '2px', 
+              margin: '10px auto',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                width: `${uploadProgress}%`, 
+                height: '100%', 
+                backgroundColor: '#ffd700',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          )}
         </div>
       </form>
     </div>

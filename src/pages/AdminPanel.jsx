@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from '../config/api';
+import apiClient, { uploadClient } from '../config/api';
 import Card from '../components/Card';
 import ProposalItem from '../components/ProposalItem';
 import CardForm from '../components/CardForm';
@@ -196,13 +196,13 @@ const AdminPanel = () => {
   const handleCardFormSubmit = async (cardData) => {
     try {
       if (editingCard) {
-        await apiClient.put(`/api/admin/cards/${editingCard.id}`, cardData, {
+        await uploadClient.put(`/api/admin/cards/${editingCard.id}`, cardData, {
           headers: {
             'Content-Type': undefined // Let axios set it automatically for FormData
           }
         });
       } else {
-        await apiClient.post('/api/admin/cards', cardData, {
+        await uploadClient.post('/api/admin/cards', cardData, {
           headers: {
             'Content-Type': undefined // Let axios set it automatically for FormData
           }

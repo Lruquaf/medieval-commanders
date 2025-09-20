@@ -28,55 +28,68 @@ const API_BASE_URL = getApiBaseUrl();
 // Create axios instance with base URL
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 100000, // Increased timeout for mobile uploads (100 seconds)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add response interceptor for better error handling
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('✅ API Response:', {
-      url: response.config.url,
-      method: response.config.method,
-      status: response.status,
-      statusText: response.statusText,
-      data: response.data
-    });
-    return response;
+// Create a separate instance for file uploads with longer timeout
+export const uploadClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 120000, // 120 seconds for uploads
+  headers: {
+    'Content-Type': 'multipart/form-data',
   },
-  (error) => {
-    console.error('❌ API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message,
-      code: error.code,
-      data: error.response?.data,
-      timeout: error.code === 'ECONNABORTED'
-    });
-    return Promise.reject(error);
-  }
-);
+});
+
+// Add response interceptor for better error handling
+const responseInterceptor = (response) => {
+  console.log('✅ API Response:', {
+    url: response.config.url,
+    method: response.config.method,
+    status: response.status,
+    statusText: response.statusText,
+    data: response.data
+  });
+  return response;
+};
+
+const errorInterceptor = (error) => {
+  console.error('❌ API Error:', {
+    url: error.config?.url,
+    method: error.config?.method,
+    status: error.response?.status,
+    statusText: error.response?.statusText,
+    message: error.message,
+    code: error.code,
+    data: error.response?.data,
+    timeout: error.code === 'ECONNABORTED'
+  });
+  return Promise.reject(error);
+};
+
+apiClient.interceptors.response.use(responseInterceptor, errorInterceptor);
+uploadClient.interceptors.response.use(responseInterceptor, errorInterceptor);
 
 // Add request interceptor to log requests
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log('🌐 API Request:', {
-      url: config.url,
-      method: config.method,
-      baseURL: config.baseURL,
-      timeout: config.timeout,
-      headers: config.headers
-    });
-    return config;
-  },
-  (error) => {
-    console.error('❌ Request Error:', error);
-    return Promise.reject(error);
-  }
-);
+const requestInterceptor = (config) => {
+  console.log('🌐 API Request:', {
+    url: config.url,
+    method: config.method,
+    baseURL: config.baseURL,
+    timeout: config.timeout,
+    headers: config.headers
+  });
+  return config;
+};
+
+const requestErrorInterceptor = (error) => {
+  console.error('❌ Request Error:', error);
+  return Promise.reject(error);
+};
+
+apiClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor);
+uploadClient.interceptors.request.use(requestInterceptor, requestErrorInterceptor);
 
 export default apiClient;

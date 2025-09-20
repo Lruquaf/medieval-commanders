@@ -1850,3 +1850,41 @@ input[type="range"]::-moz-range-thumb:hover {
     font-size: 0.8rem;
   }
 }
+
+/* Mobile Image Preview Styles */
+@media (max-width: 768px) {
+  .image-preview-container {
+    min-height: 150px !important;
+    padding: 0.75rem !important;
+  }
+  
+  .image-preview-wrapper {
+    height: 120px !important;
+  }
+  
+  .image-preview-img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+  }
+  
+  .image-preview-text {
+    font-size: 0.8rem !important;
+    margin-top: 0.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-preview-container {
+    min-height: 120px !important;
+    padding: 0.5rem !important;
+  }
+  
+  .image-preview-wrapper {
+    height: 100px !important;
+  }
+  
+  .image-preview-text {
+    font-size: 0.75rem !important;
+  }
+}

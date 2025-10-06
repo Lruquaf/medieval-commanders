@@ -22,7 +22,7 @@ echo "📁 Creating uploads directory..."
 mkdir -p uploads
 
 echo "🗄️ Setting up local database..."
-# Copy example environment file
+# Copy example environment file if .env doesn't exist
 if [ ! -f .env ]; then
     cp env.local.example .env
     echo "✅ Created .env file from example"
@@ -48,4 +48,10 @@ echo ""
 echo "📍 Server will be available at: http://localhost:5001"
 echo "🗄️ Database: SQLite (./dev.db)"
 echo "📁 Uploads: ./uploads"
+echo "🔑 Admin email: admin@medievalcommanders.com"
+echo ""
+echo "💡 This is completely isolated from production!"
+echo "   - Uses SQLite instead of PostgreSQL"
+echo "   - Stores files locally instead of Cloudinary"
+echo "   - No external dependencies required"
 echo ""

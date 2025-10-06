@@ -39,6 +39,17 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
+
+    // Local uploads path from backend static server
+    if (imagePath.includes('/uploads/')) {
+      const baseURL = apiClient.defaults.baseURL?.replace(/\/$/, '');
+      return `${baseURL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    }
+
+    // Bare filenames from seed should map to public assets
+    if (imagePath === 'placeholder-commander.jpg' || imagePath === 'placeholder-commander.svg') {
+      return `/${imagePath}`;
+    }
     
     // For any other cases, return placeholder
     return '/placeholder-commander.svg';

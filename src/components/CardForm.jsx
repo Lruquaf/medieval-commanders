@@ -240,7 +240,8 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
                   height: '180px',
                   overflow: 'hidden',
                   borderRadius: '8px',
-                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(139, 69, 19, 0.05))'
+                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(139, 69, 19, 0.05))',
+                  position: 'relative'
                 }}
               >
                 <img 
@@ -248,14 +249,18 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
                   alt="Preview" 
                   className="image-preview-img"
                   style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: '100%', 
+                    maxWidth: '90%', 
+                    maxHeight: '90%', 
                     width: 'auto',
                     height: 'auto',
                     objectFit: 'contain',
                     borderRadius: '6px',
                     border: '2px solid rgba(212, 175, 55, 0.5)',
-                    display: 'block'
+                    display: 'block',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)'
                   }}
                 />
               </div>

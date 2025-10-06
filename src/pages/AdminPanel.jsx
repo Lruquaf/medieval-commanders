@@ -16,8 +16,11 @@ const AdminPanel = () => {
   const [error, setError] = useState(null);
   const [showCardForm, setShowCardForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
+  const [showProposalForm, setShowProposalForm] = useState(false);
+  const [editingProposal, setEditingProposal] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [cardToDelete, setCardToDelete] = useState(null);
+  const [proposalToDelete, setProposalToDelete] = useState(null);
   const [adminEmail, setAdminEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [emailSuccess, setEmailSuccess] = useState('');
@@ -136,6 +139,11 @@ const AdminPanel = () => {
     }
   };
 
+  const handleEditProposal = (proposal) => {
+    setEditingProposal(proposal);
+    setShowProposalForm(true);
+  };
+
   const handleDeleteCard = (card) => {
     setCardToDelete(card);
     setShowDeleteModal(true);
@@ -183,6 +191,31 @@ const AdminPanel = () => {
     setCardToDelete(null);
   };
 
+  const handleDeleteProposal = (proposal) => {
+    setProposalToDelete(proposal);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProposal = async () => {
+    if (proposalToDelete) {
+      try {
+        await apiClient.delete(`/api/admin/proposals/${proposalToDelete.id}`);
+        await fetchData();
+        setShowDeleteModal(false);
+        setProposalToDelete(null);
+      } catch (err) {
+        setError('Failed to delete proposal');
+        setShowDeleteModal(false);
+        setProposalToDelete(null);
+      }
+    }
+  };
+
+  const cancelDeleteProposal = () => {
+    setShowDeleteModal(false);
+    setProposalToDelete(null);
+  };
+
   const handleEditCard = (card) => {
     setEditingCard(card);
     setShowCardForm(true);
@@ -213,6 +246,21 @@ const AdminPanel = () => {
       await fetchData();
     } catch (err) {
       setError('Failed to save card');
+    }
+  };
+
+  const handleProposalFormSubmit = async (proposalData) => {
+    try {
+      if (editingProposal) {
+        await uploadClient.put(`/api/admin/proposals/${editingProposal.id}`, proposalData, {
+          headers: { 'Content-Type': undefined }
+        });
+      }
+      setShowProposalForm(false);
+      setEditingProposal(null);
+      await fetchData();
+    } catch (err) {
+      setError('Failed to save proposal');
     }
   };
 
@@ -282,6 +330,32 @@ const AdminPanel = () => {
             </button>
           </div>
         </form>
+      </div>
+    );
+  }
+
+  if (showProposalForm && editingProposal) {
+    // Map proposal to CardForm's expected shape
+    const cardLike = {
+      id: editingProposal.id,
+      name: editingProposal.name,
+      image: editingProposal.image,
+      attributes: editingProposal.attributes,
+      tier: editingProposal.tier,
+      description: editingProposal.description,
+      birthYear: editingProposal.birthYear || '',
+      deathYear: editingProposal.deathYear || ''
+    };
+    return (
+      <div className="container">
+        <CardForm
+          card={cardLike}
+          onSubmit={handleProposalFormSubmit}
+          onCancel={() => {
+            setShowProposalForm(false);
+            setEditingProposal(null);
+          }}
+        />
       </div>
     );
   }
@@ -458,6 +532,8 @@ const AdminPanel = () => {
                     proposal={proposal}
                     onApprove={() => handleApproveProposal(proposal.id)}
                     onReject={() => handleRejectProposal(proposal.id)}
+                    onEdit={() => handleEditProposal(proposal)}
+                    onDelete={() => handleDeleteProposal(proposal)}
                   />
                 ))}
             </div>
@@ -704,10 +780,12 @@ const AdminPanel = () => {
       {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteModal}
-        onClose={cancelDeleteCard}
-        onConfirm={confirmDeleteCard}
-        title="Delete Card"
-        message={`Are you sure you want to delete "${cardToDelete?.name}"? This action cannot be undone.`}
+        onClose={proposalToDelete ? cancelDeleteProposal : cancelDeleteCard}
+        onConfirm={proposalToDelete ? confirmDeleteProposal : confirmDeleteCard}
+        title={proposalToDelete ? 'Delete Proposal' : 'Delete Card'}
+        message={proposalToDelete 
+          ? `Are you sure you want to delete proposal "${proposalToDelete?.name}"? This action cannot be undone.`
+          : `Are you sure you want to delete "${cardToDelete?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
       />

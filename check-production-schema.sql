@@ -20,7 +20,10 @@ SELECT
     column_default
 FROM information_schema.columns 
 WHERE table_name = 'proposals' 
-    AND column_name IN ('birthDate', 'birthYear', 'deathDate', 'deathYear')
+    AND column_name IN (
+      'birthDate', 'birthYear', 'deathDate', 'deathYear',
+      'email', 'proposerName', 'proposerInstagram'
+    )
 ORDER BY ordinal_position;
 
 -- Check admins table structure

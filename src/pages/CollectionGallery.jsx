@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../config/api';
 import Card from '../components/Card';
+import CardListItem from '../components/CardListItem';
 
 const CollectionGallery = () => {
   const [cards, setCards] = useState([]);
@@ -10,6 +11,7 @@ const CollectionGallery = () => {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
   useEffect(() => {
     fetchCards();
@@ -171,6 +173,30 @@ const CollectionGallery = () => {
               <option value="desc">Descending</option>
             </select>
           </div>
+
+          {/* View toggle */}
+          <div className="view-toggle" role="group" aria-label="View mode">
+            <button
+              type="button"
+              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Grid view"
+              aria-pressed={viewMode === 'grid'}
+            >
+              {/* grid icon */}
+              <span aria-hidden>▦</span>
+            </button>
+            <button
+              type="button"
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List view"
+              aria-pressed={viewMode === 'list'}
+            >
+              {/* list icon */}
+              <span aria-hidden>≡</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -180,11 +206,21 @@ const CollectionGallery = () => {
           <p>Try adjusting your filter or check back later for new additions.</p>
         </div>
       ) : (
-        <div className="card-grid">
-          {sortedCards.map(card => (
-            <Card key={card.id} card={card} />
-          ))}
-        </div>
+        (
+          viewMode === 'grid' ? (
+            <div className="card-grid">
+              {sortedCards.map(card => (
+                <Card key={card.id} card={card} />
+              ))}
+            </div>
+          ) : (
+            <div className="card-list">
+              {sortedCards.map(card => (
+                <CardListItem key={card.id} card={card} />
+              ))}
+            </div>
+          )
+        )
       )}
 
       <div style={{ textAlign: 'center', margin: '3rem 0' }}>

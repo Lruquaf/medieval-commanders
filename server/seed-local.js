@@ -1,181 +1,342 @@
 const { PrismaClient } = require('./node_modules/.prisma/client-local');
+const path = require('path');
 
-// Initialize Prisma client for local SQLite database
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: "file:./dev.db"
+    }
+  }
+});
 
 async function main() {
-  console.log('🌱 Seeding local database with sample data...');
+  console.log('🌱 Seeding local development database (append-only)...');
 
   try {
-    // Clear existing data
-    await prisma.proposal.deleteMany();
-    await prisma.card.deleteMany();
-    console.log('🧹 Cleared existing data');
+    // Safety guard: destructive reseed only if forced
+    const hasAnyData = await Promise.all([
+      prisma.card.count(), prisma.proposal.count(), prisma.admin.count()
+    ]).then(([c, p, a]) => (c + p + a) > 0);
 
-    // Create sample cards
+    if (hasAnyData && process.env.FORCE_SEED === '1') {
+      console.log('🧹 FORCE_SEED=1 set: wiping existing data...');
+      await prisma.proposal.deleteMany();
+      await prisma.card.deleteMany();
+      await prisma.admin.deleteMany();
+    }
+
+    // Ensure admin user exists (create if missing)
+    let admin = await prisma.admin.findFirst();
+    if (!admin) {
+      admin = await prisma.admin.create({
+        data: {
+          email: 'admin@medievalcommanders.com',
+          instagramUrl: 'https://instagram.com/medievalcommanders',
+          twitterUrl: 'https://twitter.com/medievalcommanders',
+          facebookUrl: 'https://facebook.com/medievalcommanders',
+          linkedinUrl: 'https://linkedin.com/company/medievalcommanders',
+          youtubeUrl: 'https://youtube.com/@medievalcommanders'
+        }
+      });
+      console.log('✅ Admin user created:', admin.email);
+    } else {
+      console.log('ℹ️  Admin user exists:', admin.email);
+    }
+
+    // Sample medieval commanders data
     const sampleCards = [
       {
-        name: 'Richard the Lionheart',
-        email: 'richard@crusades.com',
-        image: null, // Will use placeholder
+        name: "William the Conqueror",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 95,
+          intelligence: 88,
+          charisma: 92,
+          leadership: 98,
+          tactics: 94
+        }),
+        tier: "Legendary",
+        description: "Duke of Normandy who became King of England after the Norman Conquest of 1066. Known for his military prowess and administrative reforms.",
+        birthYear: 1028,
+        deathYear: 1087,
+        status: "approved"
+      },
+      {
+        name: "Alfred the Great",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
         attributes: JSON.stringify({
           strength: 85,
-          intelligence: 70,
-          charisma: 90,
-          leadership: 95,
-          attack: 88,
-          defense: 75,
-          speed: 70,
-          health: 82
+          intelligence: 96,
+          charisma: 88,
+          leadership: 94,
+          tactics: 90
         }),
-        tier: 'Legendary',
-        description: 'King of England and leader of the Third Crusade. Known for his military prowess and strategic brilliance in the Holy Land.',
-        status: 'approved'
+        tier: "Legendary",
+        description: "King of Wessex who defended England against Viking invasions and promoted learning and legal reform.",
+        birthYear: 849,
+        deathYear: 899,
+        status: "approved"
       },
       {
-        name: 'William the Conqueror',
-        email: 'william@normandy.com',
-        image: null,
+        name: "Richard the Lionheart",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
         attributes: JSON.stringify({
-          strength: 80,
+          strength: 98,
           intelligence: 85,
-          charisma: 75,
-          leadership: 92,
-          attack: 82,
-          defense: 80,
-          speed: 65,
-          health: 85
-        }),
-        tier: 'Legendary',
-        description: 'Duke of Normandy who conquered England in 1066. Revolutionized medieval warfare and established Norman rule.',
-        status: 'approved'
-      },
-      {
-        name: 'Saladin',
-        email: 'saladin@ayyubid.com',
-        image: null,
-        attributes: JSON.stringify({
-          strength: 78,
-          intelligence: 90,
-          charisma: 85,
-          leadership: 88,
-          attack: 80,
-          defense: 85,
-          speed: 75,
-          health: 80
-        }),
-        tier: 'Legendary',
-        description: 'Kurdish Muslim leader who recaptured Jerusalem during the Crusades. Known for his chivalry and military genius.',
-        status: 'approved'
-      },
-      {
-        name: 'Alfred the Great',
-        email: 'alfred@wessex.com',
-        image: null,
-        attributes: JSON.stringify({
-          strength: 70,
-          intelligence: 95,
-          charisma: 80,
-          leadership: 90,
-          attack: 72,
-          defense: 88,
-          speed: 68,
-          health: 75
-        }),
-        tier: 'Epic',
-        description: 'King of Wessex who defended against Viking invasions and promoted learning and literacy.',
-        status: 'approved'
-      },
-      {
-        name: 'Joan of Arc',
-        email: 'joan@france.com',
-        image: null,
-        attributes: JSON.stringify({
-          strength: 65,
-          intelligence: 80,
           charisma: 95,
-          leadership: 85,
-          attack: 70,
-          defense: 75,
-          speed: 80,
-          health: 70
+          leadership: 96,
+          tactics: 89
         }),
-        tier: 'Epic',
-        description: 'French peasant girl who claimed divine guidance and helped turn the tide of the Hundred Years War.',
-        status: 'approved'
-      }
-    ];
-
-    // Create sample proposals
-    const sampleProposals = [
+        tier: "Legendary",
+        description: "King of England and one of the leaders of the Third Crusade. Known for his courage and military skill.",
+        birthYear: 1157,
+        deathYear: 1199,
+        status: "approved"
+      },
       {
-        name: 'Charlemagne',
-        email: 'user@example.com',
-        image: null,
+        name: "Joan of Arc",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
         attributes: JSON.stringify({
-          strength: 82,
+          strength: 75,
+          intelligence: 90,
+          charisma: 99,
+          leadership: 97,
+          tactics: 88
+        }),
+        tier: "Epic",
+        description: "French heroine who led the French army to victory during the Hundred Years' War. Canonized as a saint.",
+        birthYear: 1412,
+        deathYear: 1431,
+        status: "approved"
+      },
+      {
+        name: "Charlemagne",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 92,
+          intelligence: 95,
+          charisma: 94,
+          leadership: 99,
+          tactics: 96
+        }),
+        tier: "Legendary",
+        description: "King of the Franks and first Holy Roman Emperor. United much of Western Europe and promoted education and culture.",
+        birthYear: 742,
+        deathYear: 814,
+        status: "approved"
+      },
+      {
+        name: "Charles Martel",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 92,
           intelligence: 88,
           charisma: 85,
           leadership: 95,
-          attack: 80,
-          defense: 82,
-          speed: 65,
-          health: 85
+          tactics: 93
         }),
-        tier: 'Legendary',
-        description: 'King of the Franks and Emperor of the Romans. United much of Western Europe during the early Middle Ages.',
-        status: 'pending'
+        tier: "Legendary",
+        description: "Frankish statesman and military leader; victory at the Battle of Tours (732) halted Umayyad advance into Western Europe.",
+        birthYear: 688,
+        deathYear: 741,
+        status: "approved"
       },
       {
-        name: 'El Cid',
-        email: 'user2@example.com',
-        image: null,
+        name: "Saladin",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
         attributes: JSON.stringify({
-          strength: 85,
-          intelligence: 75,
-          charisma: 80,
-          leadership: 82,
-          attack: 90,
-          defense: 78,
-          speed: 75,
-          health: 80
+          strength: 89,
+          intelligence: 96,
+          charisma: 93,
+          leadership: 98,
+          tactics: 97
         }),
-        tier: 'Epic',
-        description: 'Castilian knight and warlord in medieval Spain. Famous for his military campaigns during the Reconquista.',
-        status: 'pending'
+        tier: "Legendary",
+        description: "First Sultan of Egypt and Syria, founder of the Ayyubid dynasty. Known for his chivalry and military genius.",
+        birthYear: 1137,
+        deathYear: 1193,
+        status: "approved"
+      },
+      {
+        name: "El Cid",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 94,
+          intelligence: 87,
+          charisma: 91,
+          leadership: 95,
+          tactics: 93
+        }),
+        tier: "Epic",
+        description: "Castilian nobleman and military leader who became a national hero of Spain. Known for his loyalty and military skill.",
+        birthYear: 1043,
+        deathYear: 1099,
+        status: "approved"
+      },
+      {
+        name: "Genghis Khan",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 97,
+          intelligence: 93,
+          charisma: 96,
+          leadership: 99,
+          tactics: 98
+        }),
+        tier: "Legendary",
+        description: "Founder and first Great Khan of the Mongol Empire. One of the most successful military commanders in history.",
+        birthYear: 1162,
+        deathYear: 1227,
+        status: "approved"
+      },
+      {
+        name: "Eleanor of Aquitaine",
+        email: "admin@medievalcommanders.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 70,
+          intelligence: 98,
+          charisma: 97,
+          leadership: 94,
+          tactics: 89
+        }),
+        tier: "Epic",
+        description: "Queen consort of France and England, one of the most powerful women of the Middle Ages. Patron of the arts and literature.",
+        birthYear: 1122,
+        deathYear: 1204,
+        status: "approved"
       }
     ];
 
-    // Insert sample cards
+    // Helper: find upload file for a given name (slug match, pick most recent)
+    const fs = require('fs');
+    const uploadsDir = path.join(__dirname, 'uploads');
+    const slugify = (str) => String(str)
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9\s_-]/g, '')
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/-+/g, '_');
+    let uploadFiles = [];
+    try {
+      uploadFiles = fs.readdirSync(uploadsDir).filter(n => n && !n.startsWith('.'));
+    } catch (_) {}
+    const fileMtime = (f) => {
+      try { return fs.statSync(path.join(uploadsDir, f)).mtimeMs || 0; } catch { return 0; }
+    };
+
+    // Append-only: create cards if missing (by name), and auto-link uploads
     for (const cardData of sampleCards) {
-      await prisma.card.create({ data: cardData });
-    }
-    console.log(`✅ Created ${sampleCards.length} sample cards`);
+      const existing = await prisma.card.findFirst({ where: { name: cardData.name } });
+      if (existing) {
+        // Optionally update image if current is placeholder and there is a matching upload
+        const isPlaceholder = !existing.image || existing.image === 'placeholder-commander.jpg' || existing.image === 'placeholder-commander.svg';
+        if (isPlaceholder && uploadFiles.length > 0) {
+          const slug = slugify(cardData.name);
+          const candidates = uploadFiles.filter(f => f.toLowerCase().includes(slug)).sort((a, b) => fileMtime(b) - fileMtime(a));
+          if (candidates.length > 0) {
+            const newPath = `/uploads/${candidates[0]}`;
+            await prisma.card.update({ where: { id: existing.id }, data: { image: newPath } });
+            console.log(`🔗 Linked upload for existing card: ${cardData.name} -> ${newPath}`);
+          }
+        }
+        continue;
+      }
 
-    // Insert sample proposals
+      // Prepare image: prefer uploads match, else keep provided
+      let finalImage = cardData.image;
+      if (uploadFiles.length > 0) {
+        const slug = slugify(cardData.name);
+        const candidates = uploadFiles.filter(f => f.toLowerCase().includes(slug)).sort((a, b) => fileMtime(b) - fileMtime(a));
+        if (candidates.length > 0) {
+          finalImage = `/uploads/${candidates[0]}`;
+        }
+      }
+
+      const card = await prisma.card.create({
+        data: { ...cardData, image: finalImage }
+      });
+      console.log(`✅ Card ensured: ${card.name} (${card.tier})`);
+    }
+
+    // Create some sample proposals (append-only by name)
+    const sampleProposals = [
+      {
+        name: "Alexander Nevsky",
+        email: "user@example.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 88,
+          intelligence: 85,
+          charisma: 90,
+          leadership: 92,
+          tactics: 87
+        }),
+        tier: "Rare",
+        description: "Prince of Novgorod and Grand Prince of Vladimir. Known for his victories against the Teutonic Knights and Swedes.",
+        birthYear: 1220,
+        deathYear: 1263,
+        status: "pending"
+      },
+      {
+        name: "Boudicca",
+        email: "user2@example.com",
+        image: "placeholder-commander.jpg",
+        attributes: JSON.stringify({
+          strength: 85,
+          intelligence: 88,
+          charisma: 95,
+          leadership: 93,
+          tactics: 82
+        }),
+        tier: "Epic",
+        description: "Queen of the British Celtic Iceni tribe who led an uprising against the Roman Empire in AD 60-61.",
+        birthYear: 30,
+        deathYear: 61,
+        status: "pending"
+      }
+    ];
+
     for (const proposalData of sampleProposals) {
-      await prisma.proposal.create({ data: proposalData });
+      const existing = await prisma.proposal.findFirst({ where: { name: proposalData.name } });
+      if (existing) {
+        continue;
+      }
+      const proposal = await prisma.proposal.create({ data: proposalData });
+      console.log(`✅ Proposal ensured: ${proposal.name} (${proposal.tier})`);
     }
-    console.log(`✅ Created ${sampleProposals.length} sample proposals`);
 
     console.log('');
-    console.log('🎉 Database seeding completed successfully!');
+    console.log('🎉 Local development database seeded (append-only) successfully!');
     console.log('');
-    console.log('📊 Sample data created:');
-    console.log(`   - ${sampleCards.length} approved cards`);
-    console.log(`   - ${sampleProposals.length} pending proposals`);
+    console.log('📊 Summary:');
+    console.log(`   👤 Admin users: 1`);
+    console.log(`   🃏 Cards: ${sampleCards.length}`);
+    console.log(`   📝 Proposals: ${sampleProposals.length}`);
+    console.log('');
+    console.log('🔑 Admin login: admin@medievalcommanders.com');
+    console.log('🚀 Start the server with: npm run dev:local');
 
   } catch (error) {
     console.error('❌ Error seeding database:', error);
     throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seed script failed:', e);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });

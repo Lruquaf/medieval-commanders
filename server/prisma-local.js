@@ -11,7 +11,6 @@ try {
   console.log('🔧 Local Development Mode');
   console.log('📁 Using SQLite database:', localDbUrl);
 
-  // We need to generate the client with the local schema first
   prisma = new PrismaClient({
     datasources: {
       db: {
@@ -28,14 +27,13 @@ try {
     })
     .catch((error) => {
       console.error('❌ Local database connection failed:', error.message);
-      console.log('💡 Run: npx prisma migrate dev --schema=./schema.local.prisma');
+      console.log('💡 Run: npm run setup:local');
     });
 
 } catch (error) {
   console.error('Failed to initialize local Prisma Client:', error);
   console.log('🔧 Setup commands:');
-  console.log('1. npx prisma generate --schema=./schema.local.prisma');
-  console.log('2. npx prisma migrate dev --schema=./schema.local.prisma');
+  console.log('1. npm run setup:local');
   throw error;
 }
 

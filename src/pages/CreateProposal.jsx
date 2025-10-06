@@ -6,18 +6,8 @@ const CreateProposal = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    attributes: {
-      strength: 50,
-      intelligence: 50,
-      charisma: 50,
-      leadership: 50,
-      attack: 50,
-      defense: 50,
-      speed: 50,
-      health: 50
-    },
-    tier: 'Common',
+    proposerName: '',
+    proposerInstagram: '',
     description: '',
     birthYear: '',
     deathYear: ''
@@ -30,35 +20,15 @@ const CreateProposal = () => {
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return email ? emailRegex.test(email) : true;
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith('attributes.')) {
-      const attrName = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        attributes: {
-          ...prev.attributes,
-          [attrName]: parseInt(value) || 0
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-
-      // Validate email when it changes
-      if (name === 'email') {
-        if (value && !validateEmail(value)) {
-          setEmailError('Please enter a valid email address');
-        } else {
-          setEmailError('');
-        }
-      }
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleImageChange = (e) => {
@@ -73,20 +43,14 @@ const CreateProposal = () => {
     setLoading(true);
     setError(null);
 
-    // Validate email before submitting
-    if (!validateEmail(formData.email)) {
-      setEmailError('Please enter a valid email address');
-      setLoading(false);
-      return;
-    }
+    // No email mandatory in simplified flow
 
     console.log('🚀 Starting proposal submission...');
     console.log('📝 Form data:', {
       name: formData.name,
-      email: formData.email,
-      tier: formData.tier,
+      proposerName: formData.proposerName,
+      proposerInstagram: formData.proposerInstagram,
       description: formData.description,
-      attributes: formData.attributes,
       birthYear: formData.birthYear,
       deathYear: formData.deathYear,
       image: image ? { name: image.name, size: image.size, type: image.type } : null
@@ -95,9 +59,8 @@ const CreateProposal = () => {
     try {
       const submitData = new FormData();
       submitData.append('name', formData.name);
-      submitData.append('email', formData.email);
-      submitData.append('attributes', JSON.stringify(formData.attributes));
-      submitData.append('tier', formData.tier);
+      if (formData.proposerName) submitData.append('proposerName', formData.proposerName);
+      if (formData.proposerInstagram) submitData.append('proposerInstagram', formData.proposerInstagram);
       submitData.append('description', formData.description);
       submitData.append('birthDate', formData.birthYear || '');
       submitData.append('deathDate', formData.deathYear || '');
@@ -172,7 +135,7 @@ const CreateProposal = () => {
           Propose a New Commander
         </h1>
         <p style={{ fontSize: '1.2rem', color: 'rgba(255, 255, 255, 0.9)' }}>
-          Submit your own medieval commander for the collection
+          Submit a commander proposal for review
         </p>
       </div>
 
@@ -197,103 +160,17 @@ const CreateProposal = () => {
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="email" className="form-label">Your Email Address *</label>
-          <p className="form-description">You will be notified by email if the proposal is approved or rejected.</p>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className={`form-input ${emailError ? 'error' : ''}`}
-            required
-            placeholder="your.email@example.com"
-          />
-          {emailError && (
-            <div className="field-error">
-              {emailError}
-            </div>
-          )}
-        </div>
+        
 
-        <div className="form-group">
-          <label htmlFor="image" className="form-label">Commander Image <span className="optional-text">(optional)</span></label>
-          <p className="form-description">Upload an image to represent your commander. If no image is provided, a placeholder will be used.</p>
-          <div className="file-input" onClick={() => document.getElementById('image').click()}>
-            <input
-              type="file"
-              id="image"
-              accept="image/*"
-              onChange={handleImageChange}
-              style={{ display: 'none' }}
-            />
-            <div>
-              {image ? (
-                <p>Selected: {image.name}</p>
-              ) : (
-                <p>Click to select an image or drag and drop</p>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Image removed in simplified proposer flow */}
 
-        <div className="form-group">
-          <label htmlFor="tier" className="form-label">Tier *</label>
-          <p className="form-description">Select the rarity tier for your commander. Higher tiers should represent more historically significant or powerful figures.</p>
-          <select
-            id="tier"
-            name="tier"
-            value={formData.tier}
-            onChange={handleInputChange}
-            className="form-select"
-            required
-          >
-            <option value="Common">Common</option>
-            <option value="Rare">Rare</option>
-            <option value="Epic">Epic</option>
-            <option value="Legendary">Legendary</option>
-            <option value="Mythic">Mythic</option>
-          </select>
-        </div>
+        {/* Tier removed in simplified proposer flow */}
 
-        <div className="form-group">
-          <label className="form-label">Attributes *</label>
-          <p className="form-description">Set the combat and leadership stats for your commander. Each attribute ranges from 0-100 and should reflect the historical figure's capabilities.</p>
-          <div className="attributes-grid">
-            {Object.entries(formData.attributes).map(([attr, value]) => (
-              <div key={attr} className="attribute-input">
-                <div className="attribute-header">
-                  <div className="attribute-name">
-                    {attr}
-                  </div>
-                  <div className="attribute-value">
-                    {value}
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  id={attr}
-                  name={`attributes.${attr}`}
-                  min="0"
-                  max="100"
-                  value={value}
-                  onChange={handleInputChange}
-                  className="attribute-range"
-                />
-                <div className="attribute-scale">
-                  <span>0</span>
-                  <span>50</span>
-                  <span>100</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Attributes removed in simplified proposer flow */}
 
         <div className="form-group">
           <label htmlFor="description" className="form-label">Description *</label>
-          <p className="form-description">Provide a detailed description of your commander's background, achievements, and historical significance. This will help others understand their story and impact.</p>
+          <p className="form-description">Briefly identify exactly who this commander is. Admins will refine the full biography later. Example: "Louis I (King of Hungary), 14th c.; Angevin dynasty".</p>
           <textarea
             id="description"
             name="description"
@@ -301,40 +178,72 @@ const CreateProposal = () => {
             onChange={handleInputChange}
             className="form-textarea"
             required
-            placeholder="Describe the commander's background, achievements, and historical significance..."
+            placeholder="e.g., Louis I (King of Hungary), 14th c.; Angevin dynasty"
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="birthYear" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
-          <p className="form-description">Enter the commander's birth year if known (e.g., 1157).</p>
-          <input
-            type="number"
-            id="birthYear"
-            name="birthYear"
-            value={formData.birthYear}
-            onChange={handleInputChange}
-            className="form-input"
-            placeholder="e.g., 1157"
-            min="1"
-            max="2100"
-          />
+          <div className="form-row-2">
+            <div>
+              <label htmlFor="birthYear" className="form-label">Birth Year <span className="optional-text">(optional)</span></label>
+              <p className="form-description">Enter if known (e.g., 1157).</p>
+              <input
+                type="number"
+                id="birthYear"
+                name="birthYear"
+                value={formData.birthYear}
+                onChange={handleInputChange}
+                className="form-input"
+                placeholder="e.g., 1157"
+                min="1"
+                max="2100"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+            <div>
+              <label htmlFor="deathYear" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
+              <p className="form-description">Enter if known (e.g., 1199).</p>
+              <input
+                type="number"
+                id="deathYear"
+                name="deathYear"
+                value={formData.deathYear}
+                onChange={handleInputChange}
+                className="form-input"
+                placeholder="e.g., 1199"
+                min="1"
+                max="2100"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="form-group">
-          <label htmlFor="deathYear" className="form-label">Death Year <span className="optional-text">(optional)</span></label>
-          <p className="form-description">Enter the commander's death year if known (e.g., 1199).</p>
-          <input
-            type="number"
-            id="deathYear"
-            name="deathYear"
-            value={formData.deathYear}
-            onChange={handleInputChange}
-            className="form-input"
-            placeholder="e.g., 1199"
-            min="1"
-            max="2100"
-          />
+          <label className="form-label">Proposer Info</label>
+          <p className="form-description">Optional info about the person submitting the proposal. Instagram is used for social tagging.</p>
+          <div className="form-row-2">
+            <input
+              type="text"
+              id="proposerName"
+              name="proposerName"
+              value={formData.proposerName}
+              onChange={handleInputChange}
+              className="form-input"
+              placeholder="Your name"
+            />
+            <input
+              type="text"
+              id="proposerInstagram"
+              name="proposerInstagram"
+              value={formData.proposerInstagram}
+              onChange={handleInputChange}
+              className="form-input"
+              placeholder="Instagram username (optional)"
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>

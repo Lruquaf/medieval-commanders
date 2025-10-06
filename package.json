@@ -11,11 +11,11 @@
     "start": "cd server && node index.js",
     "postinstall": "cd server && npm install",
     "db:generate": "npx prisma generate --schema=./prisma/schema.railway.prisma",
-    "db:generate:dev": "npx prisma generate --schema=./prisma/schema.dev.prisma",
+    "db:generate:local": "npx prisma generate --schema=./server/schema.local.prisma",
     "db:push": "npx prisma db push --schema=./prisma/schema.railway.prisma",
-    "db:push:dev": "npx prisma db push --schema=./prisma/schema.dev.prisma",
+    "db:push:local": "npx prisma db push --schema=./server/schema.local.prisma",
     "db:deploy": "npx prisma generate --schema=./prisma/schema.railway.prisma && npx prisma db push --schema=./prisma/schema.railway.prisma",
-    "db:setup:dev": "npx prisma generate --schema=./prisma/schema.dev.prisma && npx prisma db push --schema=./prisma/schema.dev.prisma"
+    "db:setup:local": "cd server && npm run setup:local"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

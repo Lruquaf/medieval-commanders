@@ -195,6 +195,86 @@ app.get('/api/admin/proposals', async (req, res) => {
   }
 });
 
+// Admin: Update a proposal (simple server)
+app.put('/api/admin/proposals/:id', upload.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
+
+    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+    if (prisma) {
+      // With prisma available
+      const existing = await prisma.proposal.findUnique({ where: { id } });
+      if (!existing) {
+        return res.status(404).json({ error: 'Proposal not found' });
+      }
+      if (existing.status !== 'pending') {
+        return res.status(400).json({ error: 'Only pending proposals can be edited' });
+      }
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (attributes) updateData.attributes = attributes;
+      if (tier) updateData.tier = tier;
+      if (description) updateData.description = description;
+      if (birthDate !== undefined) updateData.birthYear = birthDate ? parseInt(birthDate) : null;
+      if (deathDate !== undefined) updateData.deathYear = deathDate ? parseInt(deathDate) : null;
+      if (image !== undefined) updateData.image = image;
+      const updated = await prisma.proposal.update({ where: { id }, data: updateData });
+      return res.json(updated);
+    }
+
+    // Fallback: update mock data
+    const idx = mockProposals.findIndex(p => p.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    const existing = mockProposals[idx];
+    const updated = {
+      ...existing,
+      name: name ?? existing.name,
+      attributes: attributes ?? existing.attributes,
+      tier: tier ?? existing.tier,
+      description: description ?? existing.description,
+      birthYear: birthDate !== undefined ? (birthDate ? parseInt(birthDate) : null) : existing.birthYear,
+      deathYear: deathDate !== undefined ? (deathDate ? parseInt(deathDate) : null) : existing.deathYear,
+      image: image !== undefined ? image : existing.image,
+      updatedAt: new Date()
+    };
+    mockProposals[idx] = updated;
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating proposal:', error);
+    res.status(500).json({ error: 'Failed to update proposal' });
+  }
+});
+
+// Admin: Delete a proposal (simple server)
+app.delete('/api/admin/proposals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (prisma) {
+      const existing = await prisma.proposal.findUnique({ where: { id } });
+      if (!existing) return res.status(404).json({ error: 'Proposal not found' });
+      if (existing.status === 'pending') {
+        return res.status(400).json({ error: 'Cannot delete a pending proposal' });
+      }
+      await prisma.proposal.delete({ where: { id } });
+      return res.json({ message: 'Proposal deleted' });
+    }
+    const idx = mockProposals.findIndex(p => p.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Proposal not found' });
+    if (mockProposals[idx].status === 'pending') {
+      return res.status(400).json({ error: 'Cannot delete a pending proposal' });
+    }
+    mockProposals.splice(idx, 1);
+    res.json({ message: 'Proposal deleted' });
+  } catch (error) {
+    console.error('Error deleting proposal:', error);
+    res.status(500).json({ error: 'Failed to delete proposal' });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

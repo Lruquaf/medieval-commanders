@@ -214,21 +214,39 @@ app.get('/api/admin/proposals', async (req, res) => {
 // Create a new card proposal
 app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
   try {
-    const { name, email, attributes, tier, description, birthDate, deathDate } = req.body;
-    
-    if (!name || !email || !attributes || !tier || !description) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const { name, email, attributes, tier, description, birthDate, deathDate, proposerName, proposerInstagram } = req.body;
+
+    // Minimal required fields for simplified local flow
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!description) {
+      return res.status(400).json({ error: 'Description is required' });
     }
 
     const imageUrl = getImageUrl(req.file);
     
+    // Provide safe defaults for optional legacy fields to keep compatibility
+    const defaultAttributes = JSON.stringify({
+      strength: 0,
+      intelligence: 0,
+      charisma: 0,
+      leadership: 0,
+      attack: 0,
+      defense: 0,
+      speed: 0,
+      health: 0
+    });
+
     const proposal = await prisma.proposal.create({
       data: {
         name,
-        email,
+        email: email || null,
+        proposerName: proposerName || null,
+        proposerInstagram: proposerInstagram || null,
         image: imageUrl,
-        attributes: attributes,
-        tier,
+        attributes: typeof attributes === 'string' && attributes.trim() !== '' ? attributes : defaultAttributes,
+        tier: tier || 'Common',
         description,
         birthYear: birthDate ? parseInt(birthDate) : null,
         deathYear: deathDate ? parseInt(deathDate) : null,
@@ -357,6 +375,59 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
   }
 });
 
+// Local-only: Repair card images by matching filenames in uploads folder
+app.post('/api/admin/repair-images', async (req, res) => {
+  try {
+    const files = fs.readdirSync(uploadsDir).filter(name => name && !name.startsWith('.'));
+
+    const slugify = (str) => {
+      return String(str)
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[^a-z0-9\s_-]/g, '')
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/-+/g, '_');
+    };
+
+    const fileStats = new Map();
+    for (const f of files) {
+      try {
+        const full = path.join(uploadsDir, f);
+        const stat = fs.statSync(full);
+        fileStats.set(f, stat.mtimeMs || 0);
+      } catch (_) {}
+    }
+
+    const cards = await prisma.card.findMany();
+    const updates = [];
+
+    for (const card of cards) {
+      const current = card.image || '';
+      if (typeof current === 'string' && current.includes('/uploads/')) continue;
+
+      const slug = slugify(card.name);
+      const candidates = files.filter(f => f.toLowerCase().includes(slug));
+
+      if (candidates.length > 0) {
+        const picked = candidates.sort((a, b) => (fileStats.get(b) || 0) - (fileStats.get(a) || 0))[0];
+        const newPath = `/uploads/${picked}`;
+
+        await prisma.card.update({
+          where: { id: card.id },
+          data: { image: newPath }
+        });
+
+        updates.push({ id: card.id, name: card.name, image: newPath });
+      }
+    }
+
+    res.json({ updated: updates.length, updates });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Admin: Approve a proposal
 app.post('/api/admin/proposals/:id/approve', async (req, res) => {
   try {
@@ -429,6 +500,65 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
     }
 
     res.json({ message: 'Proposal rejected' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Delete a proposal (only if approved or rejected)
+app.delete('/api/admin/proposals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const proposal = await prisma.proposal.findUnique({ where: { id } });
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    if (proposal.status === 'pending') {
+      return res.status(400).json({ error: 'Cannot delete a pending proposal' });
+    }
+
+    await prisma.proposal.delete({ where: { id } });
+    res.json({ message: 'Proposal deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Update a proposal (edit fields while pending)
+app.put('/api/admin/proposals/:id', uploadWithErrorHandling, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
+
+    const proposal = await prisma.proposal.findUnique({ where: { id } });
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    if (proposal.status !== 'pending') {
+      return res.status(400).json({ error: 'Only pending proposals can be edited' });
+    }
+
+    const formatYear = (yearString) => {
+      if (!yearString || String(yearString).trim() === '') return null;
+      const year = parseInt(yearString);
+      if (isNaN(year) || year < 1 || year > 2100) return null;
+      return year;
+    };
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (attributes) updateData.attributes = attributes; // JSON string
+    if (tier) updateData.tier = tier;
+    if (description) updateData.description = description;
+    if (birthDate !== undefined) updateData.birthYear = formatYear(birthDate);
+    if (deathDate !== undefined) updateData.deathYear = formatYear(deathDate);
+    if (req.file) {
+      updateData.image = getImageUrl(req.file);
+    }
+
+    const updated = await prisma.proposal.update({ where: { id }, data: updateData });
+    const updatedWithParsed = { ...updated, attributes: JSON.parse(updated.attributes) };
+    res.json(updatedWithParsed);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

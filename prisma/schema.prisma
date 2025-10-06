@@ -30,7 +30,9 @@ model Card {
 model Proposal {
   id          String   @id @default(cuid())
   name        String
-  email       String
+  email       String?
+  proposerName String?
+  proposerInstagram String?
   image       String?
   attributes  String   // JSON string for attributes
   tier        String

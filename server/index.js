@@ -442,13 +442,24 @@ app.get('/api/admin/proposals', async (req, res) => {
 // Create a new card proposal
 app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
   try {
-    const { name, email, attributes, tier, description, birthDate, deathDate } = req.body;
-    
-    if (!name || !email || !attributes || !tier || !description) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const { 
+      name, 
+      email, 
+      attributes, 
+      tier, 
+      description, 
+      birthDate, 
+      deathDate,
+      proposerName,
+      proposerInstagram
+    } = req.body;
+
+    // Minimal required fields for simplified flow: name + description
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Missing required fields: name and description are required' });
     }
 
-    // Get image URL based on storage type
+    // Get image URL based on storage type (optional)
     const imageUrl = getImageUrl(req.file);
     if (imageUrl) {
       console.log('Proposal image processed:', isCloudinaryConfigured ? 'Cloudinary' : 'Base64');
@@ -458,19 +469,42 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
 
     // Convert year strings to integers
     const formatYear = (yearString) => {
-      if (!yearString || yearString.trim() === '') return null;
+      if (!yearString || String(yearString).trim() === '') return null;
       const year = parseInt(yearString);
       if (isNaN(year) || year < 1 || year > 2100) return null;
       return year;
     };
 
+    // Provide safe defaults for optional legacy fields
+    const defaultAttributes = JSON.stringify({
+      strength: 0,
+      intelligence: 0,
+      charisma: 0,
+      leadership: 0,
+      attack: 0,
+      defense: 0,
+      speed: 0,
+      health: 0
+    });
+
+    const attributesToStore = 
+      typeof attributes === 'string' && attributes.trim() !== ''
+        ? attributes
+        : (attributes && typeof attributes === 'object')
+          ? JSON.stringify(attributes)
+          : defaultAttributes;
+
+    const tierToStore = tier && String(tier).trim() !== '' ? tier : 'Common';
+
     const proposal = await prisma.proposal.create({
       data: {
         name,
-        email,
+        email: email || null,
+        proposerName: proposerName || null,
+        proposerInstagram: proposerInstagram || null,
         image: imageUrl,
-        attributes: attributes, // Store as JSON string
-        tier,
+        attributes: attributesToStore,
+        tier: tierToStore,
         description,
         birthYear: formatYear(birthDate),
         deathYear: formatYear(deathDate),
@@ -489,9 +523,7 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
       try {
         const adminEmail = await getAdminEmail();
         console.log('📧 Sending admin notification email...');
-        
         const emailResult = await emailService.sendNewProposalNotificationEmail(adminEmail, proposal);
-        
         if (emailResult.success) {
           console.log('✅ Admin notification email sent successfully');
         } else {
@@ -575,6 +607,65 @@ app.post('/api/admin/proposals/:id/reject', async (req, res) => {
     // Proposal rejected - no email notification to user
 
     res.json({ message: 'Proposal rejected' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Delete a proposal (only if approved or rejected)
+app.delete('/api/admin/proposals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const proposal = await prisma.proposal.findUnique({ where: { id } });
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    if (proposal.status === 'pending') {
+      return res.status(400).json({ error: 'Cannot delete a pending proposal' });
+    }
+
+    await prisma.proposal.delete({ where: { id } });
+    res.json({ message: 'Proposal deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Update a proposal (edit fields while pending)
+app.put('/api/admin/proposals/:id', uploadWithErrorHandling, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, attributes, tier, description, birthDate, deathDate } = req.body;
+
+    const proposal = await prisma.proposal.findUnique({ where: { id } });
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    if (proposal.status !== 'pending') {
+      return res.status(400).json({ error: 'Only pending proposals can be edited' });
+    }
+
+    const formatYear = (yearString) => {
+      if (!yearString || String(yearString).trim() === '') return null;
+      const year = parseInt(yearString);
+      if (isNaN(year) || year < 1 || year > 2100) return null;
+      return year;
+    };
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (attributes) updateData.attributes = attributes; // JSON string
+    if (tier) updateData.tier = tier;
+    if (description) updateData.description = description;
+    if (birthDate !== undefined) updateData.birthYear = formatYear(birthDate);
+    if (deathDate !== undefined) updateData.deathYear = formatYear(deathDate);
+    if (req.file) {
+      updateData.image = getImageUrl(req.file);
+    }
+
+    const updated = await prisma.proposal.update({ where: { id }, data: updateData });
+    const updatedWithParsed = { ...updated, attributes: JSON.parse(updated.attributes) };
+    res.json(updatedWithParsed);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

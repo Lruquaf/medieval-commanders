@@ -27,12 +27,29 @@ try {
     console.warn('DATABASE_URL environment variable is not set');
   }
 
-  prisma = new PrismaClient({
-    datasources: {
-      db: { url: dbUrl }
-    },
+  const initClient = () => new PrismaClient({
+    datasources: { db: { url: dbUrl } },
     log: ['query', 'info', 'warn', 'error']
   });
+
+  try {
+    prisma = initClient();
+  } catch (e) {
+    if (String(e && e.message || '').includes('did not initialize yet')) {
+      // Attempt to generate Prisma Client at runtime (last-resort for production deploys)
+      try {
+        const cp = require('child_process');
+        console.log('Prisma Client not initialized, generating...');
+        cp.execSync('npx prisma generate --schema=../prisma/schema.prisma', { stdio: 'inherit', cwd: __dirname });
+        prisma = initClient();
+      } catch (genErr) {
+        console.error('Failed to generate Prisma Client at runtime:', genErr.message);
+        throw e;
+      }
+    } else {
+      throw e;
+    }
+  }
 
   // Test connection immediately
   prisma.$connect()

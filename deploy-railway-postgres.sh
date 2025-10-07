@@ -17,6 +17,10 @@ node scripts/sync-prisma-provider.js || true
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
 
+# Copy canonical Prisma schema into server so generate targets server package
+echo "Copying Prisma schema into server directory..."
+cp prisma/schema.prisma server/schema.prisma
+
 # Verify required packages are installed
 echo "Verifying required packages..."
 if [ -d "server/node_modules/cloudinary" ]; then
@@ -313,9 +317,9 @@ fi
 
 # ===== END MIGRATION SECTION =====
 
-# Generate Prisma client for the server package using canonical schema
+# Generate Prisma client for the server package using local schema
 echo "Generating Prisma client (server)..."
-cd server && npx prisma generate --schema=../prisma/schema.prisma && cd ..
+cd server && npx prisma generate --schema=./schema.prisma && cd ..
 
 # Verify Prisma client was generated (server)
 echo "Verifying Prisma client generation (server)..."

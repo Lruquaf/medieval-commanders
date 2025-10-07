@@ -39,8 +39,16 @@ try {
       // Attempt to generate Prisma Client at runtime (last-resort for production deploys)
       try {
         const cp = require('child_process');
-        console.log('Prisma Client not initialized, generating...');
-        cp.execSync('npx prisma generate --schema=../prisma/schema.prisma', { stdio: 'inherit', cwd: __dirname });
+        const fs = require('fs');
+        const path = require('path');
+        const localSchema = path.join(__dirname, 'schema.prisma');
+        const rootSchema = path.join(__dirname, '..', 'prisma', 'schema.prisma');
+        if (!fs.existsSync(localSchema) && fs.existsSync(rootSchema)) {
+          console.log('Copying schema.prisma into server directory for local generation...');
+          fs.copyFileSync(rootSchema, localSchema);
+        }
+        console.log('Prisma Client not initialized, generating (server)...');
+        cp.execSync('npx prisma generate --schema=./schema.prisma', { stdio: 'inherit', cwd: __dirname });
         prisma = initClient();
       } catch (genErr) {
         console.error('Failed to generate Prisma Client at runtime:', genErr.message);

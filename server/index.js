@@ -79,7 +79,12 @@ const getImageUrl = (file) => {
 // Middleware
 // CORS configuration based on environment
 if (IS_PRODUCTION) {
-  const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? String(process.env.FRONTEND_URL)
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    : [];
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);

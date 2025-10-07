@@ -309,16 +309,16 @@ fi
 
 # ===== END MIGRATION SECTION =====
 
-# Generate Prisma client using canonical schema
-echo "Generating Prisma client..."
-npx prisma generate --schema=./prisma/schema.prisma
+# Generate Prisma client for the server package using canonical schema
+echo "Generating Prisma client (server)..."
+cd server && npx prisma generate --schema=../prisma/schema.prisma && cd ..
 
-# Verify Prisma client was generated
-echo "Verifying Prisma client generation..."
-if [ -d "node_modules/.prisma/client" ]; then
-    echo "✓ Prisma client generated successfully"
+# Verify Prisma client was generated (server)
+echo "Verifying Prisma client generation (server)..."
+if [ -d "server/node_modules/.prisma/client" ]; then
+    echo "✓ Prisma client generated successfully in server"
 else
-    echo "✗ Prisma client not found, Prisma generation failed"
+    echo "✗ Prisma client not found in server, Prisma generation failed"
     exit 1
 fi
 
@@ -328,7 +328,7 @@ for i in {1..5}; do
     echo "Attempt $i/5 to connect to database..."
     
     # First try to connect and check if database is accessible
-    if npx prisma db push --schema=./prisma/schema.prisma --accept-data_loss; then
+    if npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss; then
         echo "✓ Database connection successful and schema pushed"
         break
     else

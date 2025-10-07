@@ -9,6 +9,10 @@ echo "Starting Railway deployment with PostgreSQL..."
 echo "Installing dependencies..."
 npm install
 
+# Sync Prisma provider based on DATABASE_URL (Railway env)
+echo "Syncing Prisma provider based on DATABASE_URL..."
+node scripts/sync-prisma-provider.js || true
+
 # Install server dependencies
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
@@ -328,6 +332,8 @@ for i in {1..5}; do
     echo "Attempt $i/5 to connect to database..."
     
     # First try to connect and check if database is accessible
+    # Ensure provider is in sync before pushing
+    node scripts/sync-prisma-provider.js || true
     if npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss; then
         echo "✓ Database connection successful and schema pushed"
         break

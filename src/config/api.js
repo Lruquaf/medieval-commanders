@@ -9,9 +9,12 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     baseUrl = import.meta.env.VITE_API_URL;
   }
-  // In development, use localhost
+  // In development, use current machine hostname to allow LAN/mobile access
   else if (import.meta.env.DEV) {
-    baseUrl = 'http://localhost:5001';
+    const devHost = (typeof window !== 'undefined' && window.location && window.location.hostname)
+      ? window.location.hostname
+      : 'localhost';
+    baseUrl = `http://${devHost}:5001`;
   }
   // In production, use Railway backend URL
   // This will be overridden by VITE_API_URL in Netlify

@@ -9,10 +9,6 @@ echo "Starting Railway deployment..."
 echo "Installing dependencies..."
 npm install
 
-# Copy Prisma schema to server directory
-echo "Copying Prisma schema to server directory..."
-cp prisma/schema.railway.prisma server/schema.prisma
-
 # Install server dependencies
 echo "Installing server dependencies..."
 cd server && npm install && cd ..
@@ -25,34 +21,24 @@ if [ -z "$DATABASE_URL" ]; then
 else
     echo "DATABASE_URL is set, proceeding with database setup..."
     
-    # Generate Prisma client in server directory
-    echo "Generating Prisma client in server directory..."
-    cd server && npx prisma generate --schema=./schema.prisma && cd ..
+    # Generate Prisma client using canonical schema
+    echo "Generating Prisma client..."
+    npx prisma generate --schema=./prisma/schema.prisma
     
     # Verify Prisma client was generated
     echo "Verifying Prisma client generation..."
-    if [ -d "server/node_modules/.prisma/client" ]; then
-        echo "✓ Prisma client generated successfully in server directory"
+    if [ -d "node_modules/.prisma/client" ]; then
+        echo "✓ Prisma client generated successfully"
     else
-        echo "✗ Prisma client not found in server directory, trying alternative approach..."
-        # Try generating in root and copying
-        npx prisma generate --schema=./prisma/schema.railway.prisma
-        if [ -d "node_modules/.prisma/client" ]; then
-            echo "✓ Prisma client generated in root, copying to server..."
-            mkdir -p server/node_modules/.prisma
-            cp -r node_modules/.prisma/client server/node_modules/.prisma/
-            echo "✓ Prisma client copied to server directory"
-        else
-            echo "✗ Failed to generate Prisma client"
-            exit 1
-        fi
+        echo "✗ Prisma client not found, Prisma generation failed"
+        exit 1
     fi
     
     # Push database schema with retry logic
     echo "Pushing database schema..."
     for i in {1..5}; do
         echo "Attempt $i/5 to connect to database..."
-        if npx prisma db push --schema=./prisma/schema.railway.prisma; then
+        if npx prisma db push --schema=./prisma/schema.prisma; then
             echo "✓ Database schema pushed successfully"
             break
         else

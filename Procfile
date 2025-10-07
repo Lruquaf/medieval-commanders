@@ -1,1 +1,1 @@
-web: ./deploy.sh
+web: ./deploy-railway-postgres.sh

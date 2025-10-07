@@ -5,7 +5,19 @@ let prisma;
 
 try {
   // Log DATABASE_URL for debugging (without password)
-  const dbUrl = process.env.DATABASE_URL;
+  let dbUrl = process.env.DATABASE_URL;
+  // Normalize SQLite relative path to absolute prisma/dev.db to avoid creating server/dev.db
+  try {
+    if (dbUrl && dbUrl.startsWith('file:')) {
+      const rawPath = dbUrl.replace(/^file:/, '');
+      // If not absolute, force to prisma/dev.db
+      if (!rawPath.startsWith('/') && !rawPath.startsWith('\\')) {
+        const absolute = require('path').join(__dirname, '..', 'prisma', 'dev.db');
+        dbUrl = 'file:' + absolute;
+      }
+    }
+  } catch (_) {}
+
   if (dbUrl) {
     const urlParts = new URL(dbUrl);
     console.log(`Connecting to database: ${urlParts.protocol}//${urlParts.hostname}:${urlParts.port}${urlParts.pathname}`);
@@ -17,9 +29,7 @@ try {
 
   prisma = new PrismaClient({
     datasources: {
-      db: {
-        url: dbUrl
-      }
+      db: { url: dbUrl }
     },
     log: ['query', 'info', 'warn', 'error']
   });

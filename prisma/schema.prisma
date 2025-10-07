@@ -6,7 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // provider will be auto-synced by scripts/sync-prisma-provider.js based on DATABASE_URL
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 

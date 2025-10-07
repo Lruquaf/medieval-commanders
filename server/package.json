@@ -6,10 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "dev:local": "node index-local.js",
-    "setup:local": "./setup-local.sh",
-    "seed:local": "node seed-local.js",
-    "postinstall": "npx prisma generate --schema=./schema.prisma"
+    "postinstall": "npx prisma generate --schema=../prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

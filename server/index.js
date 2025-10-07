@@ -1,6 +1,12 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+// Load root .env so server uses the same DATABASE_URL as CLI
+try {
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+} catch (_) {}
 const prisma = require('./prisma');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -8,6 +14,7 @@ const emailService = require('./emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Cloudinary configuration
 console.log('Cloudinary config check:');
@@ -61,46 +68,87 @@ const getImageUrl = (file) => {
     const base64 = file.buffer.toString('base64');
     const mimeType = file.mimetype;
     return `data:${mimeType};base64,${base64}`;
+  } else if (file.filename) {
+    // Local disk storage in development
+    return `http://localhost:${PORT}/uploads/${file.filename}`;
   }
   
   return null;
 };
 
 // Middleware
-// CORS configuration - Temporary permissive setup
-const corsOptions = {
-  origin: true, // Allow all origins temporarily
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-
-app.use(cors(corsOptions));
+// CORS configuration based on environment
+if (IS_PRODUCTION) {
+  const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  }));
+} else {
+  // Development: allow all origins for convenience
+  app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  }));
+}
 app.use(express.json());
 
-// Cloudinary storage configuration for multer
+// Storage configuration: use Cloudinary in production, local disk in development
 let storage;
-try {
+if (IS_PRODUCTION) {
   if (isCloudinaryConfigured) {
-    storage = new CloudinaryStorage({
-      cloudinary: cloudinary,
-      params: {
-        folder: 'medieval-commanders',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-        transformation: [
-          { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
-        ],
-        timeout: 60000, // 60 seconds timeout for Cloudinary
-        resource_type: 'auto'
-      }
-    });
-    console.log('✅ Cloudinary storage configured successfully');
+    try {
+      storage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: {
+          folder: 'medieval-commanders',
+          allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+          transformation: [
+            { width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }
+          ],
+          timeout: 60000,
+          resource_type: 'auto'
+        }
+      });
+      console.log('✅ Cloudinary storage configured successfully');
+    } catch (error) {
+      console.error('❌ Cloudinary storage init error:', error.message);
+      storage = null; // explicit: no storage in prod without Cloudinary
+    }
   } else {
-    throw new Error('Cloudinary not configured');
+    storage = null;
   }
-} catch (error) {
-  console.error('❌ Cloudinary storage failed, using memory storage:', error.message);
-  storage = multer.memoryStorage();
+  if (!storage) {
+    console.error('❌ No upload storage configured in production. Set Cloudinary env vars.');
+  }
+} else {
+  // Development: persist files locally
+  const uploadsDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+      const timestamp = Date.now();
+      const sanitized = String(file.originalname || 'image').replace(/[^a-zA-Z0-9._-]/g, '_');
+      cb(null, `${timestamp}-${sanitized}`);
+    }
+  });
+  // Serve local uploads
+  app.use('/uploads', express.static(uploadsDir));
 }
 
 // Health check endpoint
@@ -214,7 +262,7 @@ app.get('/api/debug/cards', async (req, res) => {
 
 // Configure multer for file uploads with Cloudinary
 const upload = multer({ 
-  storage: storage,
+  storage: storage || multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     console.log('Multer fileFilter called:', file.originalname, file.mimetype);
     if (file.mimetype.startsWith('image/')) {
@@ -302,24 +350,18 @@ const uploadWithErrorHandling = (req, res, next) => {
   });
 };
 
-// Add error handling middleware for multer
+// Central error handler (avoid noisy logs for common cases)
 app.use((error, req, res, next) => {
-  console.error('Multer error:', error);
-  console.error('Error message:', error.message);
-  console.error('Error stack:', error.stack);
-  console.error('Error name:', error.name);
-  console.error('Error code:', error.code);
-  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'File too large' });
     }
     return res.status(400).json({ error: `Multer error: ${error.message}` });
   }
-  if (error.message === 'Only image files are allowed!') {
-    return res.status(400).json({ error: 'Only image files are allowed!' });
+  if (error && error.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'CORS not allowed' });
   }
-  next(error);
+  return res.status(500).json({ error: error?.message || 'Server error' });
 });
 
 // Test endpoint for file upload
@@ -385,10 +427,15 @@ app.get('/api/cards', async (req, res) => {
     console.log('Sample card image:', approvedCards[0]?.image);
     
     // Parse attributes JSON for each card
-    const cardsWithParsedAttributes = approvedCards.map(card => ({
-      ...card,
-      attributes: JSON.parse(card.attributes)
-    }));
+    const cardsWithParsedAttributes = approvedCards.map(card => {
+      let parsed;
+      try {
+        parsed = JSON.parse(card.attributes);
+      } catch (_) {
+        parsed = {};
+      }
+      return { ...card, attributes: parsed };
+    });
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
@@ -408,10 +455,11 @@ app.get('/api/admin/cards', async (req, res) => {
     console.log('Sample admin card image:', allCards[0]?.image);
     
     // Parse attributes JSON for each card
-    const cardsWithParsedAttributes = allCards.map(card => ({
-      ...card,
-      attributes: JSON.parse(card.attributes)
-    }));
+    const cardsWithParsedAttributes = allCards.map(card => {
+      let parsed;
+      try { parsed = JSON.parse(card.attributes); } catch (_) { parsed = {}; }
+      return { ...card, attributes: parsed };
+    });
     
     res.json(cardsWithParsedAttributes);
   } catch (error) {
@@ -424,14 +472,28 @@ app.get('/api/admin/cards', async (req, res) => {
 app.get('/api/admin/proposals', async (req, res) => {
   try {
     const allProposals = await prisma.proposal.findMany({
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        attributes: true,
+        tier: true,
+        description: true,
+        birthYear: true,
+        deathYear: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
+      },
       orderBy: { createdAt: 'desc' }
     });
     
     // Parse attributes JSON for each proposal
-    const proposalsWithParsedAttributes = allProposals.map(proposal => ({
-      ...proposal,
-      attributes: JSON.parse(proposal.attributes)
-    }));
+    const proposalsWithParsedAttributes = allProposals.map(proposal => {
+      let parsed;
+      try { parsed = JSON.parse(proposal.attributes); } catch (_) { parsed = {}; }
+      return { ...proposal, attributes: parsed };
+    });
     
     res.json(proposalsWithParsedAttributes);
   } catch (error) {
@@ -513,10 +575,9 @@ app.post('/api/proposals', uploadWithErrorHandling, async (req, res) => {
     });
 
     // Parse attributes for response
-    const proposalWithParsedAttributes = {
-      ...proposal,
-      attributes: JSON.parse(proposal.attributes)
-    };
+    let parsed;
+    try { parsed = JSON.parse(proposal.attributes); } catch (_) { parsed = {}; }
+    const proposalWithParsedAttributes = { ...proposal, attributes: parsed };
 
     // Send admin notification email asynchronously (don't block response)
     setImmediate(async () => {
@@ -574,10 +635,9 @@ app.post('/api/admin/proposals/:id/approve', async (req, res) => {
     });
 
     // Parse attributes for response
-    const cardWithParsedAttributes = {
-      ...newCard,
-      attributes: JSON.parse(newCard.attributes)
-    };
+    let parsedCreate;
+    try { parsedCreate = JSON.parse(newCard.attributes); } catch (_) { parsedCreate = {}; }
+    const cardWithParsedAttributes = { ...newCard, attributes: parsedCreate };
 
     // Proposal approved - no email notification to user
     
@@ -798,10 +858,9 @@ app.put('/api/admin/cards/:id', uploadWithErrorHandling, async (req, res) => {
     console.log('Updated card:', updatedCard);
 
     // Parse attributes for response
-    const cardWithParsedAttributes = {
-      ...updatedCard,
-      attributes: JSON.parse(updatedCard.attributes)
-    };
+    let parsedUpdate;
+    try { parsedUpdate = JSON.parse(updatedCard.attributes); } catch (_) { parsedUpdate = {}; }
+    const cardWithParsedAttributes = { ...updatedCard, attributes: parsedUpdate };
 
     res.json(cardWithParsedAttributes);
   } catch (error) {
@@ -928,10 +987,11 @@ app.get('/api/proposals', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     
-    const proposalsWithParsedAttributes = allProposals.map(proposal => ({
-      ...proposal,
-      attributes: JSON.parse(proposal.attributes)
-    }));
+    const proposalsWithParsedAttributes = allProposals.map(proposal => {
+      let parsed;
+      try { parsed = JSON.parse(proposal.attributes); } catch (_) { parsed = {}; }
+      return { ...proposal, attributes: parsed };
+    });
     
     res.json(proposalsWithParsedAttributes);
   } catch (error) {

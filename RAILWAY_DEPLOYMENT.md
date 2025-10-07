@@ -83,6 +83,6 @@ Railway otomatik olarak `railway.json` dosyasını okuyacak ve:
 │   ├── index.js          # Backend server
 │   └── package.json      # Server dependencies
 ├── prisma/
-│   └── schema.railway.prisma  # Railway PostgreSQL schema
+│   └── schema.prisma          # Canonical Prisma schema (PostgreSQL)
 └── package.json          # Root dependencies
 ```

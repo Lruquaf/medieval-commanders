@@ -59,7 +59,7 @@ Migration başarılı olduktan sonra:
 
 ```bash
 # Normal deployment script'ine geri dön
-./switch-to-normal-deploy.sh
+Artık gerek yok; `railway.json` tek bir start komutuna işaret ediyor.
 
 # Değişikliği pushla
 git add railway.json

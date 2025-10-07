@@ -163,8 +163,7 @@ If you encounter any issues during migration:
 ## Files Modified
 
 ### Backend:
-- `prisma/schema.prisma` - Added social media fields to Admin model
-- `server/schema.prisma` - Added social media fields to Admin model  
+- `prisma/schema.prisma` - Canonical schema (Admin social media fields included)
 - `server/index.js` - Enhanced admin settings endpoints
 
 ### Frontend:

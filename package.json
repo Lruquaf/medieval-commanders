@@ -10,12 +10,10 @@
     "server": "node server/index.js",
     "start": "cd server && node index.js",
     "postinstall": "cd server && npm install",
-    "db:generate": "npx prisma generate --schema=./prisma/schema.railway.prisma",
-    "db:generate:local": "npx prisma generate --schema=./server/schema.local.prisma",
-    "db:push": "npx prisma db push --schema=./prisma/schema.railway.prisma",
-    "db:push:local": "npx prisma db push --schema=./server/schema.local.prisma",
-    "db:deploy": "npx prisma generate --schema=./prisma/schema.railway.prisma && npx prisma db push --schema=./prisma/schema.railway.prisma",
-    "db:setup:local": "cd server && npm run setup:local"
+    "prisma:sync": "node scripts/sync-prisma-provider.js",
+    "db:generate": "npm run prisma:sync && npx prisma generate --schema=./prisma/schema.prisma",
+    "db:push": "npm run prisma:sync && npx prisma db push --schema=./prisma/schema.prisma",
+    "db:deploy": "npm run prisma:sync && npx prisma generate --schema=./prisma/schema.prisma && npx prisma db push --schema=./prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

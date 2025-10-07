@@ -97,7 +97,7 @@ cd server
 npm install
 
 # Generate Prisma client
-npx prisma generate --schema=../prisma/schema.railway.prisma
+npx prisma generate --schema=../prisma/schema.prisma
 
 # Deploy to Railway
 railway up
@@ -106,7 +106,7 @@ railway up
 ### Step 3: Run Database Migration
 ```bash
 # Run migration to add birth/death year fields
-railway run npx prisma db push --schema=../prisma/schema.railway.prisma
+railway run npx prisma db push --schema=../prisma/schema.prisma
 ```
 
 ### Step 4: Update Frontend
@@ -210,7 +210,7 @@ railway status
 railway logs
 
 # Test database connection
-railway run npx prisma db push --schema=../prisma/schema.railway.prisma
+railway run npx prisma db push --schema=../prisma/schema.prisma
 
 # Test email service
 railway run node -e "require('./emailService').sendEmail('test@example.com', 'Test', 'Test email')"

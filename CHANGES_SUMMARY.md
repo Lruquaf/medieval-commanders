@@ -41,9 +41,8 @@ All local development changes have been analyzed and prepared for production dep
 ## 📁 Files Modified
 
 ### Backend Files:
-- `prisma/schema.prisma` - Updated Admin model
-- `server/schema.prisma` - Updated Admin model
-- `server/index.js` - Enhanced admin settings endpoints
+- `prisma/schema.prisma` - Canonical Prisma schema (PostgreSQL)
+- `server/index.js` - Unified server entry, NODE_ENV-based CORS/uploads
 
 ### Frontend Files:
 - `src/components/Footer.jsx` - **NEW** - Dynamic footer component

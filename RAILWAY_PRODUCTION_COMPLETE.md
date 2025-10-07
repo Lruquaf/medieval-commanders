@@ -38,9 +38,7 @@ DEFAULT_ADMIN_EMAIL=admin@yourdomain.com
 ## 🛠️ Deployment Options
 
 ### Option 1: Automated Deployment with Email Setup
-```bash
-./deploy-railway-with-email.sh
-```
+Deploy via Railway using `railway.json` start command and environment variables.
 This script will:
 - ✅ Check your Railway login
 - ✅ Help configure email service
@@ -65,7 +63,7 @@ This script will:
 ### 🆕 New Files:
 - `server/env.railway.example` - Railway environment variables template
 - `RAILWAY_EMAIL_SETUP.md` - Complete Railway email setup guide
-- `deploy-railway-with-email.sh` - Automated deployment script
+- Unified deploy via `railway.json` (no separate email script)
 - `RAILWAY_PRODUCTION_COMPLETE.md` - This summary file
 
 ### 📝 Updated Files:

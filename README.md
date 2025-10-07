@@ -104,9 +104,10 @@ The application will be available at `http://localhost:3000`.
 Create a `.env` file in the root directory:
 
 ```env
-# Database
-DATABASE_URL="file:./dev.db"  # For development
-# DATABASE_URL="postgresql://..."  # For production (Railway provides this)
+# Database (use Postgres across environments)
+# Example dev: postgresql://user:pass@localhost:5432/medcom_dev?schema=public
+DATABASE_URL="postgresql://user:pass@localhost:5432/medcom_dev?schema=public"
+# Production: Railway provides DATABASE_URL
 
 # Server
 PORT=5001
@@ -202,8 +203,8 @@ VITE_API_URL=http://localhost:5001  # For development
 After deploying, update the CORS origins in `server/index.js`:
 
 ```javascript
-origin: process.env.NODE_ENV === 'production' 
-  ? ['https://your-frontend-domain.vercel.app', 'https://your-frontend-domain.netlify.app']
+origin: process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL]
   : ['http://localhost:3000', 'http://localhost:5173'],
 ```
 

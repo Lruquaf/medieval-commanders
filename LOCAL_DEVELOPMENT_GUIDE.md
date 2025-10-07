@@ -3,9 +3,8 @@
 ## 🎯 What This Setup Provides
 
 ✅ **Completely Isolated Environment** - No interference with production  
-✅ **SQLite Database** - No PostgreSQL required for local development  
-✅ **Local File Storage** - Images stored locally, no Cloudinary needed  
-✅ **Sample Data** - Pre-populated with medieval commanders  
+✅ **PostgreSQL-compatible** - Same schema across dev and prod  
+✅ **Configurable Storage** - Use Cloudinary in dev or skip uploads  
 ✅ **Admin Interface Testing** - Test your features without affecting production  
 ✅ **Persistent Data** - Data survives server restarts  
 
@@ -20,36 +19,25 @@
 ### Step 1: Setup Local Environment
 
 ```bash
-# Navigate to server directory
-cd server
+# Install dependencies
+npm install
+cd server && npm install && cd ..
 
-# Run the automated setup script
-npm run setup:local
+# Generate Prisma client (uses canonical schema)
+npm run db:generate
 ```
-
-This script will:
-- Install all dependencies
-- Create uploads directory
-- Set up SQLite database
-- Generate Prisma client
-- Run database migrations
-- Seed with sample data
 
 ### Step 2: Start Local Backend
 
 ```bash
-# In the server directory
-npm run dev:local
+# In the project root
+npm run server
 ```
 
 You should see:
 ```
-🚀 Local Development Server Running
-=====================================
-📍 Server: http://localhost:5001
-📁 Uploads: /path/to/uploads
-🗄️ Database: SQLite (./dev.db)
-🔧 Environment: Local Development
+🚀 Server running on port 5001
+Health check: http://localhost:5001/api/health
 ```
 
 ### Step 3: Start Frontend

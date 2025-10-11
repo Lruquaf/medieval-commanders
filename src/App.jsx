@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CollectionGallery from './pages/CollectionGallery';
-import CreateProposal from './pages/CreateProposal';
 import AdminPanel from './pages/AdminPanel';
+import PublicProposals from './pages/PublicProposals';
 
 // Error boundary component
 class ErrorBoundary extends React.Component {
@@ -45,7 +45,7 @@ function AppContent() {
       {!isAdminPage && <Header />}
       <Routes>
         <Route path="/" element={<CollectionGallery />} />
-        <Route path="/propose" element={<CreateProposal />} />
+        <Route path="/proposals" element={<PublicProposals />} />
         <Route path="/admin" element={<AdminPanel />} />
       </Routes>
       {!isAdminPage && <Footer />}

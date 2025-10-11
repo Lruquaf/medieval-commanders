@@ -1,58 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import apiClient from '../config/api';
+import ThemedSelect from '../components/ThemedSelect';
+import { useCards } from '../hooks/useCards';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
 import Card from '../components/Card';
 import CardListItem from '../components/CardListItem';
 
 const CollectionGallery = () => {
   const [cards, setCards] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('mc.sortBy') || 'name');
+  const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('mc.sortOrder') || 'asc');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('mc.viewMode') || 'grid'); // 'grid' | 'list' | 'small'
+
+  const { cards: fetchedCards, fetchCards, loading: cardsLoading, error: cardsError } = useCards({ admin: false });
 
   useEffect(() => {
     fetchCards();
-  }, []);
+  }, [fetchCards]);
 
-  const fetchCards = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get('/api/cards');
-      // Ensure response.data is an array
-      const cardsData = Array.isArray(response.data) ? response.data : [];
-      
-      
-      setCards(cardsData);
-    } catch (err) {
-      setError('Failed to load cards. Using sample data...');
-      // Use sample data if API fails
-      setCards([
-        {
-          id: '1',
-          name: 'Richard the Lionheart',
-          email: 'richard@example.com',
-          image: '/placeholder-commander.jpg',
-          attributes: JSON.stringify({
-            strength: 85,
-            intelligence: 70,
-            charisma: 90,
-            leadership: 95
-          }),
-          tier: 'Legendary',
-          description: 'King of England and leader of the Third Crusade',
-          status: 'approved',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Persist preferences
+  useEffect(() => {
+    localStorage.setItem('mc.sortBy', sortBy);
+  }, [sortBy]);
+  useEffect(() => {
+    localStorage.setItem('mc.sortOrder', sortOrder);
+  }, [sortOrder]);
+  useEffect(() => {
+    localStorage.setItem('mc.viewMode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    setCards(Array.isArray(fetchedCards) ? fetchedCards : []);
+  }, [fetchedCards]);
+
+  // removed duplicate local fetchCards; rely on hook and sync via effect
 
   const filteredCards = (cards || []).filter(card => {
     if (filter === 'all') return true;
@@ -101,21 +84,19 @@ const CollectionGallery = () => {
 
   const tierCounts = getTierCounts();
 
-  if (loading) {
+  if (cardsLoading) {
     return (
       <div className="container">
-        <div className="loading">
-          <h2>Loading collection...</h2>
-        </div>
+        <LoadingSpinner label="Loading collection..." />
       </div>
     );
   }
 
-  if (error) {
+  if (cardsError) {
     return (
       <div className="container">
-        <div className="error">
-          {error}
+        <div className="error" role="alert">
+          {'Failed to load cards.'}
         </div>
       </div>
     );
@@ -133,59 +114,97 @@ const CollectionGallery = () => {
         
         {/* Filter buttons */}
         <div className="filter-buttons">
-          {Object.entries(tierCounts).map(([tier, count]) => (
-            <button
-              key={tier}
-              onClick={() => setFilter(tier)}
-              className={`btn ${filter === tier ? 'btn-primary' : 'btn-secondary'} filter-btn`}
-            >
-              {tier} ({count})
-            </button>
-          ))}
+          {(() => {
+            const order = ['all', 'mythic', 'legendary', 'epic', 'rare', 'common'];
+            return order
+              .filter((t) => typeof tierCounts[t] !== 'undefined')
+              .map((tier) => (
+                <button
+                  key={tier}
+                  onClick={() => setFilter(tier)}
+                  className={`btn ${filter === tier ? 'btn-primary' : 'btn-secondary'} filter-btn`}
+                >
+                  {tier} ({tierCounts[tier]})
+                </button>
+              ));
+          })()}
         </div>
 
         {/* Sorting controls */}
         <div className="sorting-controls">
           <div className="sort-group">
             <label htmlFor="sortBy" className="sort-label">Sort by:</label>
-            <select
+            <ThemedSelect
               id="sortBy"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="sort-select"
+              onChange={(val) => setSortBy(val)}
+              label="Sort by"
+              options={[
+                { value: 'name', label: 'Name' },
+                { value: 'birthYear', label: 'Birth Year' },
+                { value: 'deathYear', label: 'Death Year' },
+                { value: 'tier', label: 'Tier' },
+              ]}
+            />
+            <button
+              type="button"
+              className={`order-toggle-btn ${sortOrder === 'desc' ? 'is-desc' : ''}`}
+              aria-label={`Toggle order, current ${sortOrder}`}
+              title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
             >
-              <option value="name">Name</option>
-              <option value="birthYear">Birth Year</option>
-              <option value="deathYear">Death Year</option>
-              <option value="tier">Tier</option>
-            </select>
-          </div>
-          
-          <div className="sort-group">
-            <label htmlFor="sortOrder" className="sort-label">Order:</label>
-            <select
-              id="sortOrder"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="sort-select"
-            >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
+              {sortOrder === 'asc' ? (
+                // Sort ascending icon: bars + up arrow
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+                  <path fill="currentColor" d="M3 17h10v2H3v-2Zm0-5h7v2H3v-2Zm0-5h4v2H3V7Z"/>
+                  <path fill="currentColor" d="M17 20l-4-4h3V7h2v9h3l-4 4Z"/>
+                </svg>
+              ) : (
+                // Sort descending icon: bars + down arrow
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+                  <path fill="currentColor" d="M3 17h4v2H3v-2Zm0-5h7v2H3v-2Zm0-5h10v2H3V7Z"/>
+                  <path fill="currentColor" d="M17 4l4 4h-3v9h-2V8h-3l4-4Z"/>
+                </svg>
+              )}
+            </button>
           </div>
 
-          {/* View toggle */}
+          {/* View toggle: Large Icons, Small Icons, List */}
           <div className="view-toggle" role="group" aria-label="View mode">
+            {/* Large icons (grid) */}
             <button
               type="button"
               className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
-              title="Grid view"
+              title="Large icons"
               aria-pressed={viewMode === 'grid'}
             >
-              {/* grid icon */}
-              <span aria-hidden>▦</span>
+              {/* Large icons SVG: 2x2 thick grid */}
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+                <rect x="1" y="1" width="6" height="6" fill="currentColor" rx="1"></rect>
+                <rect x="11" y="1" width="6" height="6" fill="currentColor" rx="1"></rect>
+                <rect x="1" y="11" width="6" height="6" fill="currentColor" rx="1"></rect>
+                <rect x="11" y="11" width="6" height="6" fill="currentColor" rx="1"></rect>
+              </svg>
             </button>
+            {/* Small icons */}
+            <button
+              type="button"
+              className={`view-btn ${viewMode === 'small' ? 'active' : ''}`}
+              onClick={() => setViewMode('small')}
+              title="Small icons"
+              aria-pressed={viewMode === 'small'}
+            >
+              {/* Small icons SVG: 3x3 tiny grid */}
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+                {Array.from({ length: 3 }).map((_, row) => (
+                  Array.from({ length: 3 }).map((_, col) => (
+                    <rect key={`${row}-${col}`} x={1 + col * 6} y={1 + row * 6} width="3" height="3" fill="currentColor" rx="0.5"></rect>
+                  ))
+                ))}
+              </svg>
+            </button>
+            {/* List */}
             <button
               type="button"
               className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -193,22 +212,29 @@ const CollectionGallery = () => {
               title="List view"
               aria-pressed={viewMode === 'list'}
             >
-              {/* list icon */}
-              <span aria-hidden>≡</span>
+              {/* List SVG: stacked lines */}
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+                <rect x="2" y="3" width="14" height="2" fill="currentColor" rx="1"></rect>
+                <rect x="2" y="8" width="14" height="2" fill="currentColor" rx="1"></rect>
+                <rect x="2" y="13" width="14" height="2" fill="currentColor" rx="1"></rect>
+              </svg>
             </button>
           </div>
         </div>
       </div>
 
       {sortedCards.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'white' }}>
-          <h3>No cards found</h3>
-          <p>Try adjusting your filter or check back later for new additions.</p>
-        </div>
+        <EmptyState title="No cards found" description="Try adjusting your filter or check back later for new additions." />
       ) : (
         (
           viewMode === 'grid' ? (
             <div className="card-grid">
+              {sortedCards.map(card => (
+                <Card key={card.id} card={card} />
+              ))}
+            </div>
+          ) : viewMode === 'small' ? (
+            <div className="card-grid small-grid">
               {sortedCards.map(card => (
                 <Card key={card.id} card={card} />
               ))}
@@ -223,11 +249,7 @@ const CollectionGallery = () => {
         )
       )}
 
-      <div style={{ textAlign: 'center', margin: '3rem 0' }}>
-        <Link to="/propose" className="btn btn-primary">
-          Propose a New Commander
-        </Link>
-      </div>
+      {/* Propose button removed to simplify navigation; proposing is available on /proposals */}
     </div>
   );
 };

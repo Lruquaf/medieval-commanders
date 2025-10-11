@@ -12,9 +12,6 @@ const raw = {
   PORT: process.env.PORT || '5001',
   DATABASE_URL: process.env.DATABASE_URL,
   FRONTEND_URL: process.env.FRONTEND_URL,
-  // Optional dedicated CORS origins list (comma-separated). If provided,
-  // this takes precedence over FRONTEND_URL for CORS whitelisting.
-  CORS_ORIGINS: process.env.CORS_ORIGINS,
 
   // Email / Resend
   EMAIL_SERVICE: process.env.EMAIL_SERVICE,
@@ -33,7 +30,7 @@ const env = {
   PORT: parseInt(raw.PORT, 10) || 5001,
   DATABASE_URL: raw.DATABASE_URL,
   FRONTEND_URL: raw.FRONTEND_URL,
-  FRONTEND_WHITELIST: ((raw.CORS_ORIGINS && String(raw.CORS_ORIGINS)) || (raw.FRONTEND_URL ? String(raw.FRONTEND_URL) : ''))
+  FRONTEND_WHITELIST: (raw.FRONTEND_URL ? String(raw.FRONTEND_URL) : '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),

@@ -1,5 +1,6 @@
 const prisma = require('../prisma');
 const { formatYear } = require('../utils/formatYear');
+const { deleteImageByUrl } = require('./image.service');
 
 async function listApproved() {
   const approvedCards = await prisma.card.findMany({ where: { status: 'approved' }, orderBy: { createdAt: 'desc' } });
@@ -18,6 +19,7 @@ async function getById(id) {
 }
 
 async function update(id, { name, attributes, tier, description, birthDate, deathDate, image }) {
+  const existing = await prisma.card.findUnique({ where: { id } });
   const updateData = {};
   if (name) updateData.name = name;
   if (attributes) updateData.attributes = attributes;
@@ -27,6 +29,9 @@ async function update(id, { name, attributes, tier, description, birthDate, deat
   if (deathDate !== undefined) updateData.deathYear = formatYear(deathDate);
   if (image !== undefined) updateData.image = image;
   const updated = await prisma.card.update({ where: { id }, data: updateData });
+  if (existing && image !== undefined && existing.image && existing.image !== image) {
+    try { await deleteImageByUrl(existing.image); } catch (_) {}
+  }
   return { ...updated, attributes: safeParse(updated.attributes) };
 }
 
@@ -47,7 +52,11 @@ async function create({ name, attributes, tier, description, birthDate, deathDat
 }
 
 async function remove(id) {
-  await prisma.card.delete({ where: { id } });
+  const existing = await prisma.card.findUnique({ where: { id } });
+  const deleted = await prisma.card.delete({ where: { id } });
+  if (existing && existing.image) {
+    try { await deleteImageByUrl(existing.image); } catch (_) {}
+  }
   return { message: 'Card deleted successfully' };
 }
 

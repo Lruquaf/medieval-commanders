@@ -4,6 +4,7 @@
   "description": "Backend API for Medieval Commanders Collection",
   "main": "index.js",
   "scripts": {
+    "prestart": "npx prisma generate --schema=./schema.prisma || true",
     "start": "node index.js",
     "dev": "node index.js",
     "postinstall": "npx prisma generate --schema=../prisma/schema.prisma",

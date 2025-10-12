@@ -11,8 +11,11 @@ npm install
 echo "🧭 Syncing Prisma provider based on DATABASE_URL..."
 node scripts/sync-prisma-provider.js || true
 
-echo "🔧 Ensuring Prisma client is generated for server package..."
-cd server && npx prisma generate --schema=../prisma/schema.prisma && cd ..
+echo "📄 Copying Prisma schema into server directory for local generation..."
+cp prisma/schema.prisma server/schema.prisma
+
+echo "🔧 Ensuring Prisma client is generated for server package (local schema)..."
+cd server && npx prisma generate --schema=./schema.prisma && cd ..
 
 echo "🔎 Checking required environment variables..."
 if [ -z "$DATABASE_URL" ]; then
@@ -41,16 +44,16 @@ fi
 echo "🗄️  Pushing Prisma schema to database (up to 3 attempts)..."
 for i in 1 2 3; do
   echo "→ Attempt $i/3: prisma db push"
-  if npx prisma db push --schema=./prisma/schema.prisma; then
+  if npx prisma db push --schema=./prisma/schema.prisma --skip-generate; then
     echo "✅ Schema push successful"
-    break
+        break
   fi
   if [ "$i" != "3" ]; then
     echo "⏳ Retry in 10s..."
     sleep 10
   else
     echo "⚠️  Could not push schema after 3 attempts. Continuing; server will run without enforced schema push."
-  fi
+    fi
 done
 
 echo "🚀 Starting server..."

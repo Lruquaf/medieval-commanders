@@ -13,6 +13,12 @@ const raw = {
   DATABASE_URL: process.env.DATABASE_URL,
   FRONTEND_URL: process.env.FRONTEND_URL,
 
+  // Admin auth
+  ADMIN_USERNAME: trim(process.env.ADMIN_USERNAME),
+  ADMIN_PASSWORD: trim(process.env.ADMIN_PASSWORD),
+  JWT_SECRET: trim(process.env.JWT_SECRET),
+  JWT_EXPIRES_IN: trim(process.env.JWT_EXPIRES_IN) || '1h',
+
   // Email / Resend
   EMAIL_SERVICE: process.env.EMAIL_SERVICE,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
@@ -35,6 +41,11 @@ const env = {
     .map((s) => s.trim())
     .filter(Boolean),
 
+  ADMIN_USERNAME: raw.ADMIN_USERNAME,
+  ADMIN_PASSWORD: raw.ADMIN_PASSWORD,
+  JWT_SECRET: raw.JWT_SECRET,
+  JWT_EXPIRES_IN: raw.JWT_EXPIRES_IN,
+
   EMAIL_SERVICE: raw.EMAIL_SERVICE,
   RESEND_API_KEY: raw.RESEND_API_KEY,
   EMAIL_FROM: raw.EMAIL_FROM,
@@ -49,6 +60,9 @@ function validateEnv() {
   const problems = [];
   if (env.IS_PRODUCTION) {
     if (!env.DATABASE_URL) problems.push('DATABASE_URL');
+    if (!env.ADMIN_USERNAME) problems.push('ADMIN_USERNAME');
+    if (!env.ADMIN_PASSWORD) problems.push('ADMIN_PASSWORD');
+    if (!env.JWT_SECRET) problems.push('JWT_SECRET');
     if (env.EMAIL_SERVICE === 'resend' && !env.RESEND_API_KEY) problems.push('RESEND_API_KEY');
     // Cloudinary is encouraged in prod, but not strictly required for app to run
   }
@@ -61,6 +75,9 @@ function validateEnv() {
   if (!env.IS_PRODUCTION) {
     const warnings = [];
     if (!env.DATABASE_URL) warnings.push('DATABASE_URL');
+    if (!env.ADMIN_USERNAME) warnings.push('ADMIN_USERNAME');
+    if (!env.ADMIN_PASSWORD) warnings.push('ADMIN_PASSWORD');
+    if (!env.JWT_SECRET) warnings.push('JWT_SECRET');
     if (env.EMAIL_SERVICE === 'resend' && !env.RESEND_API_KEY) warnings.push('RESEND_API_KEY');
     if (warnings.length > 0) {
       console.warn('Dev env warnings (missing non-critical vars):', warnings);

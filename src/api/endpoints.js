@@ -2,6 +2,9 @@
 export const ENDPOINTS = {
   CARDS: '/api/cards',
   PROPOSALS: '/api/proposals',
+  AUTH: {
+    LOGIN: '/api/auth/login',
+  },
   ADMIN: {
     ROOT: '/api/admin',
     CARDS: '/api/admin/cards',

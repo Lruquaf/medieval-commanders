@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { env } = require('../config/env');
 
 router.use('/health', require('./health.routes'));
+router.use('/auth', require('./auth.routes'));
 if (!env.IS_PRODUCTION) {
   router.use('/debug', require('./debug.routes'));
 }

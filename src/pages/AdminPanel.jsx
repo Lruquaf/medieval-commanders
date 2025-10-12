@@ -52,17 +52,20 @@ const AdminPanel = () => {
     }
   }, []);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    
-    const ok = adminHook.login(loginData.username, loginData.password);
-    if (!ok) {
-      setLoginError('Invalid username or password');
-      return;
+    try {
+      const ok = await adminHook.login(loginData.username, loginData.password);
+      if (!ok) {
+        setLoginError('Invalid username or password');
+        return;
+      }
+      setIsAuthenticated(true);
+      await fetchData();
+    } catch (err) {
+      setLoginError('Login failed');
     }
-    setIsAuthenticated(true);
-    fetchData();
   };
 
   const handleLogout = () => {

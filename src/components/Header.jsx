@@ -41,7 +41,7 @@ const Header = () => {
             )}
             {!isAdminPage && (
               <li>
-                <Link to="/propose" onClick={closeMenu}>Propose Card</Link>
+                <Link to="/proposals" onClick={closeMenu}>Proposals</Link>
               </li>
             )}
           </ul>

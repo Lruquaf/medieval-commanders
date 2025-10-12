@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import apiClient from '../config/api';
+import { getImageUrl } from '../utils/images';
+import { formatYearRange } from '../utils/years';
 
-const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
+const Card = React.memo(({ card, isAdmin = false, onEdit, onDelete }) => {
   const [showModal, setShowModal] = useState(false);
 
   const getTierClass = (tier) => {
@@ -17,43 +18,47 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
     setShowModal(false);
   };
 
-  // Helper function to get image URL with optional transformations
-  const getImageUrl = (imagePath, transformations = '') => {
-    if (!imagePath) return '/placeholder-commander.svg';
-    
-    // If it's a base64 data URL (legacy), return as is
-    if (imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-    
-    // If it's a Cloudinary URL and transformations are requested
-    if (imagePath.startsWith('http') && imagePath.includes('cloudinary.com') && transformations) {
-      // Insert transformations into Cloudinary URL
-      const parts = imagePath.split('/upload/');
-      if (parts.length === 2) {
-        return `${parts[0]}/upload/${transformations}/${parts[1]}`;
-      }
-    }
-    
-    // If it's already a full URL (Cloudinary or other), return as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
+  React.useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showModal]);
 
-    // Local uploads path from backend static server
-    if (imagePath.includes('/uploads/')) {
-      const baseURL = apiClient.defaults.baseURL?.replace(/\/$/, '');
-      return `${baseURL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  // Focus management and scroll lock for modal
+  const firstFocusableRef = React.useRef(null);
+  React.useEffect(() => {
+    if (showModal) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      // focus the close button
+      firstFocusableRef.current && firstFocusableRef.current.focus();
+      const onKeyDown = (e) => {
+        if (e.key !== 'Tab') return;
+        const dialog = document.querySelector('.modal-content');
+        if (!dialog) return;
+        const focusable = dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last && last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first && first.focus();
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        document.removeEventListener('keydown', onKeyDown);
+      };
     }
+  }, [showModal]);
 
-    // Bare filenames from seed should map to public assets
-    if (imagePath === 'placeholder-commander.jpg' || imagePath === 'placeholder-commander.svg') {
-      return `/${imagePath}`;
-    }
-    
-    // For any other cases, return placeholder
-    return '/placeholder-commander.svg';
-  };
+  // use shared getImageUrl util
 
   return (
     <>
@@ -62,6 +67,7 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
           <img 
             src={getImageUrl(card.image)} 
             alt={card.name}
+            loading="lazy"
             className="card-image"
             onError={(e) => {
               e.target.src = '/placeholder-commander.svg';
@@ -77,9 +83,9 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
       </div>
 
       {showModal && createPortal(
-        <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={handleCloseModal}>×</button>
+        <div className="modal-overlay" role="presentation" onClick={handleCloseModal}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-label={card.name} onClick={(e) => e.stopPropagation()}>
+            <button ref={firstFocusableRef} className="modal-close" aria-label="Close modal" onClick={handleCloseModal}>×</button>
             
             {/* Admin action buttons - top left corner */}
             {isAdmin && (
@@ -117,29 +123,16 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
             </div>
 
             {/* Birth and Death Dates - Above Image */}
-            {(card.birthYear || card.deathYear) && (
-              <div className="modal-dates">
-                <div className="modal-date-range">
-                  {(() => {
-                    const birthYear = card.birthYear;
-                    const deathYear = card.deathYear;
-                    
-                    if (birthYear && deathYear) {
-                      return `${birthYear}-${deathYear}`;
-                    } else if (birthYear) {
-                      return `Born: ${birthYear}`;
-                    } else if (deathYear) {
-                      return `Died: ${deathYear}`;
-                    }
-                    return null;
-                  })()}
-                </div>
+            <div className="modal-dates">
+              <div className="modal-date-range">
+                {formatYearRange(card.birthYear ?? null, card.deathYear ?? null)}
               </div>
-            )}
+            </div>
 
             <img 
               src={getImageUrl(card.image)} 
               alt={card.name}
+              loading="lazy"
               className="modal-image"
               onError={(e) => {
                 e.target.src = '/placeholder-commander.svg';
@@ -188,6 +181,6 @@ const Card = ({ card, isAdmin = false, onEdit, onDelete }) => {
       )}
     </>
   );
-};
+});
 
 export default Card;

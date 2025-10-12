@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import apiClient, { uploadClient } from '../config/api';
-import Card from '../components/Card';
-import ProposalItem from '../components/ProposalItem';
+import { useCards } from '../hooks/useCards';
+import { useProposals } from '../hooks/useProposals';
+import { useAdmin } from '../hooks/useAdmin';
+import CardsTab from './Admin/CardsTab';
+import ProposalsTab from './Admin/ProposalsTab';
+import SettingsTab from './Admin/SettingsTab';
 import CardForm from '../components/CardForm';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -36,10 +39,12 @@ const AdminPanel = () => {
   const [proposalSortBy, setProposalSortBy] = useState('createdAt');
   const [proposalSortOrder, setProposalSortOrder] = useState('desc');
 
+  const cardsHook = useCards({ admin: true });
+  const proposalsHook = useProposals();
+  const adminHook = useAdmin();
+
   useEffect(() => {
-    // Check if already authenticated
-    const authStatus = localStorage.getItem('adminAuthenticated');
-    if (authStatus === 'true') {
+    if (adminHook.isAuthenticated()) {
       setIsAuthenticated(true);
       fetchData();
     } else {
@@ -51,19 +56,18 @@ const AdminPanel = () => {
     e.preventDefault();
     setLoginError('');
     
-    // Simple authentication - in production, this would be server-side
-    if (loginData.username === 'admin' && loginData.password === 'admin123') {
-      setIsAuthenticated(true);
-      localStorage.setItem('adminAuthenticated', 'true');
-      fetchData();
-    } else {
+    const ok = adminHook.login(loginData.username, loginData.password);
+    if (!ok) {
       setLoginError('Invalid username or password');
+      return;
     }
+    setIsAuthenticated(true);
+    fetchData();
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('adminAuthenticated');
+    adminHook.logout();
     setCards([]);
     setProposals([]);
     setActiveTab('proposals');
@@ -73,48 +77,24 @@ const AdminPanel = () => {
     try {
       setLoading(true);
       setError(null);
-      const [cardsResponse, proposalsResponse, settingsResponse] = await Promise.all([
-        apiClient.get('/api/admin/cards'),
-        apiClient.get('/api/admin/proposals'),
-        apiClient.get('/api/admin/settings')
+      const [cardsData, proposalsData, settings] = await Promise.all([
+        cardsHook.fetchCards(),
+        proposalsHook.fetchProposals(),
+        adminHook.fetchSettings(),
       ]);
-      // Ensure response.data is an array
-      const cardsData = Array.isArray(cardsResponse.data) ? cardsResponse.data : [];
-      const proposalsData = Array.isArray(proposalsResponse.data) ? proposalsResponse.data : [];
-      
-      
-      setCards(cardsData);
-      setProposals(proposalsData);
-      setAdminEmail(settingsResponse.data.email || '');
+      setCards(cardsData || []);
+      setProposals(proposalsData || []);
+      setAdminEmail(settings?.email || '');
       setSocialMediaUrls({
-        instagramUrl: settingsResponse.data.instagramUrl || '',
-        twitterUrl: settingsResponse.data.twitterUrl || '',
-        facebookUrl: settingsResponse.data.facebookUrl || '',
-        linkedinUrl: settingsResponse.data.linkedinUrl || '',
-        youtubeUrl: settingsResponse.data.youtubeUrl || ''
+        instagramUrl: settings?.instagramUrl || '',
+        twitterUrl: settings?.twitterUrl || '',
+        facebookUrl: settings?.facebookUrl || '',
+        linkedinUrl: settings?.linkedinUrl || '',
+        youtubeUrl: settings?.youtubeUrl || ''
       });
     } catch (err) {
       setError('Failed to load admin data. Using sample data...');
-      // Use sample data if API fails
-      setCards([
-        {
-          id: '1',
-          name: 'Richard the Lionheart',
-          email: 'richard@example.com',
-          image: '/placeholder-commander.jpg',
-          attributes: JSON.stringify({
-            strength: 85,
-            intelligence: 70,
-            charisma: 90,
-            leadership: 95
-          }),
-          tier: 'Legendary',
-          description: 'King of England and leader of the Third Crusade',
-          status: 'approved',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ]);
+      setCards([]);
       setProposals([]);
     } finally {
       setLoading(false);
@@ -123,7 +103,7 @@ const AdminPanel = () => {
 
   const handleApproveProposal = async (proposalId) => {
     try {
-      await apiClient.post(`/api/admin/proposals/${proposalId}/approve`);
+      await proposalsHook.approveProposal(proposalId);
       await fetchData();
     } catch (err) {
       setError('Failed to approve proposal');
@@ -132,7 +112,7 @@ const AdminPanel = () => {
 
   const handleRejectProposal = async (proposalId) => {
     try {
-      await apiClient.post(`/api/admin/proposals/${proposalId}/reject`);
+      await proposalsHook.rejectProposal(proposalId);
       await fetchData();
     } catch (err) {
       setError('Failed to reject proposal');
@@ -160,7 +140,7 @@ const AdminPanel = () => {
     }
 
     try {
-      await apiClient.put('/api/admin/settings', { 
+      await adminHook.updateSettings({ 
         email: adminEmail,
         ...socialMediaUrls
       });
@@ -174,7 +154,7 @@ const AdminPanel = () => {
   const confirmDeleteCard = async () => {
     if (cardToDelete) {
       try {
-        await apiClient.delete(`/api/admin/cards/${cardToDelete.id}`);
+        await cardsHook.deleteCard(cardToDelete.id);
         await fetchData();
         setShowDeleteModal(false);
         setCardToDelete(null);
@@ -199,7 +179,7 @@ const AdminPanel = () => {
   const confirmDeleteProposal = async () => {
     if (proposalToDelete) {
       try {
-        await apiClient.delete(`/api/admin/proposals/${proposalToDelete.id}`);
+        await proposalsHook.deleteProposal(proposalToDelete.id);
         await fetchData();
         setShowDeleteModal(false);
         setProposalToDelete(null);
@@ -229,17 +209,9 @@ const AdminPanel = () => {
   const handleCardFormSubmit = async (cardData) => {
     try {
       if (editingCard) {
-        await uploadClient.put(`/api/admin/cards/${editingCard.id}`, cardData, {
-          headers: {
-            'Content-Type': undefined // Let axios set it automatically for FormData
-          }
-        });
+        await cardsHook.updateCard(editingCard.id, cardData);
       } else {
-        await uploadClient.post('/api/admin/cards', cardData, {
-          headers: {
-            'Content-Type': undefined // Let axios set it automatically for FormData
-          }
-        });
+        await cardsHook.createCard(cardData);
       }
       setShowCardForm(false);
       setEditingCard(null);
@@ -252,9 +224,7 @@ const AdminPanel = () => {
   const handleProposalFormSubmit = async (proposalData) => {
     try {
       if (editingProposal) {
-        await uploadClient.put(`/api/admin/proposals/${editingProposal.id}`, proposalData, {
-          headers: { 'Content-Type': undefined }
-        });
+        await proposalsHook.updateProposal(editingProposal.id, proposalData);
       }
       setShowProposalForm(false);
       setEditingProposal(null);
@@ -267,7 +237,7 @@ const AdminPanel = () => {
   if (loading) {
     return (
       <div className="container">
-        <div className="loading">
+        <div role="status" aria-live="polite" className="loading" style={{ textAlign: 'center', padding: '2rem' }}>
           <h2>Loading admin panel...</h2>
         </div>
       </div>
@@ -288,7 +258,7 @@ const AdminPanel = () => {
 
         <form onSubmit={handleLogin} className="form-container" style={{ maxWidth: '400px', margin: '0 auto' }}>
           {loginError && (
-            <div className="error">
+            <div className="error" role="alert">
               {loginError}
             </div>
           )}
@@ -408,7 +378,7 @@ const AdminPanel = () => {
         </div>
 
       {error && (
-        <div className="error">
+        <div className="error" role="alert">
           {error}
         </div>
       )}
@@ -437,344 +407,45 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      {/* Proposals Tab */}
       {activeTab === 'proposals' && (
-        <div className="admin-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 className="section-title">Card Proposals</h2>
-          </div>
-          
-          {/* Proposal Sorting Controls */}
-          <div className="sorting-controls" style={{ marginBottom: '1.5rem' }}>
-            <div className="sort-group">
-              <label htmlFor="proposalSortBy" className="sort-label">Sort by:</label>
-              <select
-                id="proposalSortBy"
-                value={proposalSortBy}
-                onChange={(e) => setProposalSortBy(e.target.value)}
-                className="sort-select"
-              >
-                <option value="createdAt">Submission Date</option>
-                <option value="name">Name</option>
-                <option value="birthYear">Birth Year</option>
-                <option value="deathYear">Death Year</option>
-                <option value="tier">Tier</option>
-                <option value="status">Status</option>
-              </select>
-            </div>
-            
-            <div className="sort-group">
-              <label htmlFor="proposalSortOrder" className="sort-label">Order:</label>
-              <select
-                id="proposalSortOrder"
-                value={proposalSortOrder}
-                onChange={(e) => setProposalSortOrder(e.target.value)}
-                className="sort-select"
-              >
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </div>
-          </div>
-          
-          {proposals.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#e6d7c3', padding: '2rem' }}>
-              No proposals found
-            </p>
-          ) : (
-            <div>
-              {proposals
-                .sort((a, b) => {
-                  // Sort pending proposals first, then by selected criteria
-                  if (a.status === 'pending' && b.status !== 'pending') return -1;
-                  if (a.status !== 'pending' && b.status === 'pending') return 1;
-                  
-                  let aValue, bValue;
-                  
-                  switch (proposalSortBy) {
-                    case 'createdAt':
-                      aValue = new Date(a.createdAt);
-                      bValue = new Date(b.createdAt);
-                      break;
-                    case 'name':
-                      aValue = a.name.toLowerCase();
-                      bValue = b.name.toLowerCase();
-                      break;
-                    case 'birthYear':
-                      aValue = a.birthYear || 0;
-                      bValue = b.birthYear || 0;
-                      break;
-                    case 'deathYear':
-                      aValue = a.deathYear || 0;
-                      bValue = b.deathYear || 0;
-                      break;
-                    case 'tier':
-                      const tierOrder = { 'Common': 1, 'Rare': 2, 'Epic': 3, 'Legendary': 4, 'Mythic': 5 };
-                      aValue = tierOrder[a.tier] || 0;
-                      bValue = tierOrder[b.tier] || 0;
-                      break;
-                    case 'status':
-                      aValue = a.status.toLowerCase();
-                      bValue = b.status.toLowerCase();
-                      break;
-                    default:
-                      aValue = new Date(a.createdAt);
-                      bValue = new Date(b.createdAt);
-                  }
-                  
-                  if (aValue < bValue) return proposalSortOrder === 'asc' ? -1 : 1;
-                  if (aValue > bValue) return proposalSortOrder === 'asc' ? 1 : -1;
-                  return 0;
-                })
-                .map(proposal => (
-                  <ProposalItem
-                    key={proposal.id}
-                    proposal={proposal}
-                    onApprove={() => handleApproveProposal(proposal.id)}
-                    onReject={() => handleRejectProposal(proposal.id)}
-                    onEdit={() => handleEditProposal(proposal)}
-                    onDelete={() => handleDeleteProposal(proposal)}
-                  />
-                ))}
-            </div>
-          )}
-        </div>
+        <ProposalsTab
+          proposals={proposals}
+          proposalSortBy={proposalSortBy}
+          setProposalSortBy={setProposalSortBy}
+          proposalSortOrder={proposalSortOrder}
+          setProposalSortOrder={setProposalSortOrder}
+          onApprove={handleApproveProposal}
+          onReject={handleRejectProposal}
+          onEdit={handleEditProposal}
+          onDelete={handleDeleteProposal}
+        />
       )}
 
       {/* Cards Tab */}
       {activeTab === 'cards' && (
-        <div className="admin-section">
-          <div className="admin-section-header">
-            <h2 className="section-title">Manage Cards</h2>
-            <button onClick={handleCreateCard} className="btn btn-primary">
-              Create New Card
-            </button>
-          </div>
-          
-          {cards.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#e6d7c3', padding: '2rem' }}>
-              No cards found
-            </p>
-          ) : (
-            <div>
-              {/* Sorting controls for admin cards */}
-              <div className="sorting-controls" style={{ marginBottom: '2rem' }}>
-                <div className="sort-group">
-                  <label htmlFor="adminSortBy" className="sort-label">Sort by:</label>
-                  <select
-                    id="adminSortBy"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="sort-select"
-                  >
-                    <option value="name">Name</option>
-                    <option value="birthYear">Birth Year</option>
-                    <option value="deathYear">Death Year</option>
-                    <option value="tier">Tier</option>
-                  </select>
-                </div>
-                
-                <div className="sort-group">
-                  <label htmlFor="adminSortOrder" className="sort-label">Order:</label>
-                  <select
-                    id="adminSortOrder"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                    className="sort-select"
-                  >
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="card-grid">
-                {cards
-                  .sort((a, b) => {
-                    let aValue, bValue;
-                    
-                    switch (sortBy) {
-                      case 'name':
-                        aValue = a.name.toLowerCase();
-                        bValue = b.name.toLowerCase();
-                        break;
-                      case 'birthYear':
-                        aValue = a.birthYear || 0;
-                        bValue = b.birthYear || 0;
-                        break;
-                      case 'deathYear':
-                        aValue = a.deathYear || 0;
-                        bValue = b.deathYear || 0;
-                        break;
-                      case 'tier':
-                        const tierOrder = { 'Common': 1, 'Rare': 2, 'Epic': 3, 'Legendary': 4, 'Mythic': 5 };
-                        aValue = tierOrder[a.tier] || 0;
-                        bValue = tierOrder[b.tier] || 0;
-                        break;
-                      default:
-                        aValue = a.name.toLowerCase();
-                        bValue = b.name.toLowerCase();
-                    }
-                    
-                    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-                    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-                    return 0;
-                  })
-                  .map(card => (
-                    <div key={card.id} className="admin-card-wrapper">
-                      <Card 
-                        card={card} 
-                        isAdmin={true}
-                        onEdit={handleEditCard}
-                        onDelete={handleDeleteCard}
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <CardsTab
+          cards={cards}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          setSortBy={setSortBy}
+          setSortOrder={setSortOrder}
+          onCreateCard={handleCreateCard}
+          onEditCard={handleEditCard}
+          onDeleteCard={handleDeleteCard}
+        />
       )}
 
       {/* Settings Tab */}
       {activeTab === 'settings' && (
-        <div className="admin-section">
-          <div className="admin-section-header">
-            <h2 className="section-title">Admin Settings</h2>
-          </div>
-          
-          <div className="form-container" style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <form onSubmit={handleSettingsUpdate}>
-              <div className="form-group">
-                <label htmlFor="adminEmail" className="form-label">
-                  Admin Email Address
-                </label>
-                <p style={{ color: '#e6d7c3', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                  This email will receive notifications when new proposals are submitted.
-                </p>
-                <input
-                  type="email"
-                  id="adminEmail"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  className="form-input"
-                  placeholder="admin@example.com"
-                  required
-                />
-              </div>
-
-              <div style={{ marginTop: '2rem' }}>
-                <h3 style={{ color: '#e6d7c3', marginBottom: '1rem' }}>Social Media Links</h3>
-                <p style={{ color: '#e6d7c3', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  These links will appear in the footer of your website.
-                </p>
-                
-                <div className="form-group">
-                  <label htmlFor="instagramUrl" className="form-label">Instagram URL</label>
-                  <input
-                    type="url"
-                    id="instagramUrl"
-                    value={socialMediaUrls.instagramUrl}
-                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, instagramUrl: e.target.value})}
-                    className="form-input"
-                    placeholder="https://instagram.com/yourusername"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="twitterUrl" className="form-label">Twitter URL</label>
-                  <input
-                    type="url"
-                    id="twitterUrl"
-                    value={socialMediaUrls.twitterUrl}
-                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, twitterUrl: e.target.value})}
-                    className="form-input"
-                    placeholder="https://twitter.com/yourusername"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="facebookUrl" className="form-label">Facebook URL</label>
-                  <input
-                    type="url"
-                    id="facebookUrl"
-                    value={socialMediaUrls.facebookUrl}
-                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, facebookUrl: e.target.value})}
-                    className="form-input"
-                    placeholder="https://facebook.com/yourpage"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="linkedinUrl" className="form-label">LinkedIn URL</label>
-                  <input
-                    type="url"
-                    id="linkedinUrl"
-                    value={socialMediaUrls.linkedinUrl}
-                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, linkedinUrl: e.target.value})}
-                    className="form-input"
-                    placeholder="https://linkedin.com/in/yourprofile"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="youtubeUrl" className="form-label">YouTube URL</label>
-                  <input
-                    type="url"
-                    id="youtubeUrl"
-                    value={socialMediaUrls.youtubeUrl}
-                    onChange={(e) => setSocialMediaUrls({...socialMediaUrls, youtubeUrl: e.target.value})}
-                    className="form-input"
-                    placeholder="https://youtube.com/channel/yourchannel"
-                  />
-                </div>
-              </div>
-
-              {emailError && (
-                <div className="error" style={{ marginBottom: '1rem' }}>
-                  {emailError}
-                </div>
-              )}
-
-              {emailSuccess && (
-                <div style={{ 
-                  color: '#4CAF50', 
-                  backgroundColor: '#1B5E20', 
-                  padding: '0.75rem', 
-                  borderRadius: '4px', 
-                  marginBottom: '1rem',
-                  textAlign: 'center'
-                }}>
-                  {emailSuccess}
-                </div>
-              )}
-
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                Update Settings
-              </button>
-            </form>
-
-            <div style={{ 
-              marginTop: '2rem', 
-              padding: '1rem', 
-              backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
-              <h3 style={{ color: '#e6d7c3', marginBottom: '1rem' }}>Email Notifications</h3>
-              <p style={{ color: '#e6d7c3', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                The admin email address is used to send notifications for:
-              </p>
-              <ul style={{ color: '#e6d7c3', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-                <li>New proposal submissions</li>
-                <li>System alerts and updates</li>
-              </ul>
-              <p style={{ color: '#e6d7c3', fontSize: '0.9rem', marginTop: '1rem', fontStyle: 'italic' }}>
-                Note: Users who submit proposals will also receive email notifications when their proposals are approved or rejected.
-              </p>
-            </div>
-          </div>
-        </div>
+        <SettingsTab
+          adminEmail={adminEmail}
+          setAdminEmail={setAdminEmail}
+          socialMediaUrls={socialMediaUrls}
+          setSocialMediaUrls={setSocialMediaUrls}
+          emailError={emailError}
+          emailSuccess={emailSuccess}
+          onSubmit={handleSettingsUpdate}
+        />
       )}
 
       {/* Confirmation Modal */}

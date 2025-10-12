@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import apiClient from '../config/api';
+import { getImageUrl } from '../utils/images';
+import { formatYearRange } from '../utils/years';
 
-const CardListItem = ({ card }) => {
+const CardListItem = React.memo(({ card }) => {
   const [showModal, setShowModal] = useState(false);
 
   const getTierClass = (tier) => `tier-${String(tier || '').toLowerCase()}`;
@@ -21,38 +22,59 @@ const CardListItem = ({ card }) => {
     return value;
   }, [card]);
 
-  const getImageUrl = (imagePath, transformations = '') => {
-    if (!imagePath) return '/placeholder-commander.svg';
-
-    if (imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-
-    if (imagePath.startsWith('http') && imagePath.includes('cloudinary.com') && transformations) {
-      const parts = imagePath.split('/upload/');
-      if (parts.length === 2) {
-        return `${parts[0]}/upload/${transformations}/${parts[1]}`;
-      }
-    }
-
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-
-    if (imagePath.includes('/uploads/')) {
-      const baseURL = apiClient.defaults.baseURL?.replace(/\/$/, '');
-      return `${baseURL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    }
-
-    if (imagePath === 'placeholder-commander.jpg' || imagePath === 'placeholder-commander.svg') {
-      return `/${imagePath}`;
-    }
-
-    return '/placeholder-commander.svg';
-  };
+  // use shared getImageUrl util
 
   const handleClick = () => setShowModal(true);
   const handleClose = () => setShowModal(false);
+
+  React.useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowModal(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showModal]);
+
+  // Focus management and scroll lock for modal
+  const firstFocusableRef = React.useRef(null);
+  React.useEffect(() => {
+    if (showModal) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      firstFocusableRef.current && firstFocusableRef.current.focus();
+      const onKeyDown = (e) => {
+        if (e.key !== 'Tab') return;
+        const dialog = document.querySelector('.modal-content');
+        if (!dialog) return;
+        const focusable = dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last && last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first && first.focus();
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        document.removeEventListener('keydown', onKeyDown);
+      };
+    }
+  }, [showModal]);
+
+  const Years = () => {
+    const { birthYear, deathYear } = card || {};
+    const label = formatYearRange(birthYear ?? null, deathYear ?? null);
+    return (
+      <div className="card-list-years" aria-label="years">
+        <span className="card-list-years-badge">{label}</span>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -61,6 +83,7 @@ const CardListItem = ({ card }) => {
           <img
             src={getImageUrl(card.image)}
             alt={card.name}
+            loading="lazy"
             className="card-list-image"
             onError={(e) => {
               e.currentTarget.src = '/placeholder-commander.svg';
@@ -68,13 +91,20 @@ const CardListItem = ({ card }) => {
           />
         </div>
         <div className="card-list-name">{card.name}</div>
-        <div className={`card-tier ${getTierClass(card.tier)}`}>{card.tier}</div>
+        <Years />
+        <div className="card-list-tier">
+          <span
+            className={`card-list-tier-dot ${getTierClass(card.tier)}`}
+            title={String(card.tier || '')}
+            aria-label={String(card.tier || '')}
+          ></span>
+        </div>
       </div>
 
       {showModal && createPortal(
-        <div className="modal-overlay" onClick={handleClose}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={handleClose}>×</button>
+        <div className="modal-overlay" role="presentation" onClick={handleClose}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-label={card.name} onClick={(e) => e.stopPropagation()}>
+            <button ref={firstFocusableRef} className="modal-close" aria-label="Close modal" onClick={handleClose}>×</button>
 
             <div className="modal-header">
               <h2 className="modal-title">{card.name}</h2>
@@ -98,6 +128,7 @@ const CardListItem = ({ card }) => {
             <img
               src={getImageUrl(card.image)}
               alt={card.name}
+              loading="lazy"
               className="modal-image"
               onError={(e) => {
                 e.currentTarget.src = '/placeholder-commander.svg';
@@ -148,7 +179,7 @@ const CardListItem = ({ card }) => {
       )}
     </>
   );
-};
+});
 
 export default CardListItem;
 

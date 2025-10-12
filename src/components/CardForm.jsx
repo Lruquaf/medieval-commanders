@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { cardSchema } from '../validators/card.schema';
 import { getOptimizedImage } from '../utils/imageCompression';
 
 const CardForm = ({ card, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    attributes: {
-      strength: 50,
-      intelligence: 50,
-      charisma: 50,
-      leadership: 50,
-      attack: 50,
-      defense: 50,
-      speed: 50,
-      health: 50
-    },
-    tier: 'Common',
-    description: '',
-    birthYear: '',
-    deathYear: ''
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(cardSchema),
+    defaultValues: {
+      name: '',
+      attributes: {
+        strength: 50,
+        intelligence: 50,
+        charisma: 50,
+        leadership: 50,
+        attack: 50,
+        defense: 50,
+        speed: 50,
+        health: 50
+      },
+      tier: 'Common',
+      description: '',
+      birthYear: undefined,
+      deathYear: undefined
+    }
   });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -29,7 +34,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
 
   useEffect(() => {
     if (card) {
-      setFormData({
+      reset({
         name: card.name || '',
         attributes: card.attributes || {
           strength: 50,
@@ -43,34 +48,14 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         },
         tier: card.tier || 'Common',
         description: card.description || '',
-        birthYear: card.birthYear || '',
-        deathYear: card.deathYear || ''
+        birthYear: card.birthYear ?? undefined,
+        deathYear: card.deathYear ?? undefined
       });
-      // Set current image preview if editing
       if (card.image) {
         setImagePreview(card.image);
       }
     }
-  }, [card]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name.startsWith('attributes.')) {
-      const attrName = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        attributes: {
-          ...prev.attributes,
-          [attrName]: parseInt(value) || 0
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
+  }, [card, reset]);
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -99,8 +84,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmitForm = async (values) => {
     setLoading(true);
     setError(null);
 
@@ -111,12 +95,12 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
     const attemptSubmit = async () => {
       try {
         const submitData = new FormData();
-        submitData.append('name', formData.name);
-        submitData.append('attributes', JSON.stringify(formData.attributes));
-        submitData.append('tier', formData.tier);
-        submitData.append('description', formData.description);
-        submitData.append('birthDate', formData.birthYear || '');
-        submitData.append('deathDate', formData.deathYear || '');
+        submitData.append('name', values.name);
+        submitData.append('attributes', JSON.stringify(values.attributes));
+        submitData.append('tier', values.tier);
+        submitData.append('description', values.description);
+        submitData.append('birthDate', values.birthYear ?? '');
+        submitData.append('deathDate', values.deathYear ?? '');
         
         if (image) {
           submitData.append('image', image);
@@ -188,7 +172,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
         {card ? 'Edit Card' : 'Create New Card'}
       </h1>
       
-      <form onSubmit={handleSubmit} className="form-container">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="form-container">
         {error && (
           <div className="error">
             {error}
@@ -200,13 +184,14 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           <input
             type="text"
             id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
+            {...register('name')}
             className="form-input"
             required
             placeholder="e.g., William the Conqueror"
           />
+          {errors.name && (
+            <div className="error">{errors.name.message}</div>
+          )}
         </div>
 
         <div className="form-group">
@@ -303,9 +288,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           <label htmlFor="tier" className="form-label">Tier *</label>
           <select
             id="tier"
-            name="tier"
-            value={formData.tier}
-            onChange={handleInputChange}
+            {...register('tier')}
             className="form-select"
             required
           >
@@ -315,12 +298,15 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
             <option value="Legendary">Legendary</option>
             <option value="Mythic">Mythic</option>
           </select>
+          {errors.tier && (
+            <div className="error">{errors.tier.message}</div>
+          )}
         </div>
 
         <div className="form-group">
           <label className="form-label">Attributes *</label>
           <div className="attributes-grid">
-            {Object.entries(formData.attributes).map(([attr, value]) => (
+            {Object.entries(watch('attributes')).map(([attr, value]) => (
               <div key={attr} className="attribute-input">
                 <div className="attribute-header">
                   <div className="attribute-name">
@@ -333,11 +319,9 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
                 <input
                   type="range"
                   id={attr}
-                  name={`attributes.${attr}`}
+                  {...register(`attributes.${attr}`, { valueAsNumber: true })}
                   min="0"
                   max="100"
-                  value={value}
-                  onChange={handleInputChange}
                   className="attribute-range"
                 />
                 <div className="attribute-scale">
@@ -354,13 +338,14 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           <label htmlFor="description" className="form-label">Description *</label>
           <textarea
             id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
+            {...register('description')}
             className="form-textarea"
             required
             placeholder="Describe the commander's background, achievements, and historical significance..."
           />
+          {errors.description && (
+            <div className="error">{errors.description.message}</div>
+          )}
         </div>
 
         <div className="form-group">
@@ -368,14 +353,15 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           <input
             type="number"
             id="birthYear"
-            name="birthYear"
-            value={formData.birthYear}
-            onChange={handleInputChange}
+            {...register('birthYear', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
             className="form-input"
             placeholder="e.g., 1157"
             min="1"
             max="2100"
           />
+          {errors.birthYear && (
+            <div className="error">{errors.birthYear.message}</div>
+          )}
         </div>
 
         <div className="form-group">
@@ -383,14 +369,15 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           <input
             type="number"
             id="deathYear"
-            name="deathYear"
-            value={formData.deathYear}
-            onChange={handleInputChange}
+            {...register('deathYear', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
             className="form-input"
             placeholder="e.g., 1199"
             min="1"
             max="2100"
           />
+          {errors.deathYear && (
+            <div className="error">{errors.deathYear.message}</div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -403,7 +390,7 @@ const CardForm = ({ card, onSubmit, onCancel }) => {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isSubmitting}
             className="btn btn-primary"
           >
             {loading ? (isRetrying ? 'Retrying...' : 'Saving...') : (card ? 'Update Card' : 'Create Card')}

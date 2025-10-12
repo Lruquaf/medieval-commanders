@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import apiClient from '../config/api';
+import { formatYearRange } from '../utils/years';
+import { getImageUrl } from '../utils/images';
 
-const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
+const ProposalItem = React.memo(({ proposal, onApprove, onReject, onEdit, onDelete }) => {
   const getTierClass = (tier) => {
     return `tier-${tier.toLowerCase()}`;
   };
@@ -10,45 +11,11 @@ const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
     return `status-${status.toLowerCase()}`;
   };
 
-  // Helper function to get image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    
-    // If it's a base64 data URL (legacy), return as is
-    if (imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-    
-    // If it's already a full URL (Cloudinary or other), return as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-    
-    // Local uploads path from backend static server
-    if (imagePath.includes('/uploads/')) {
-      const baseURL = apiClient.defaults.baseURL?.replace(/\/$/, '');
-      return `${baseURL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    }
-    
-    // Bare filenames from seed should map to public assets
-    if (imagePath === 'placeholder-commander.jpg' || imagePath === 'placeholder-commander.svg') {
-      return `/${imagePath}`;
-    }
-    
-    // For any other cases, return null (no image)
-    return null;
-  };
+  // use shared getImageUrl util
 
   const [expanded, setExpanded] = useState(false);
 
-  const yearsInline = (() => {
-    const birthYear = proposal.birthYear;
-    const deathYear = proposal.deathYear;
-    if (birthYear && deathYear) return `${birthYear}-${deathYear}`;
-    if (birthYear) return `Born: ${birthYear}`;
-    if (deathYear) return `Died: ${deathYear}`;
-    return '';
-  })();
+  const yearsInline = formatYearRange(proposal.birthYear ?? null, proposal.deathYear ?? null);
 
   const proposerInfo = (() => {
     const name = proposal.proposerName && String(proposal.proposerName).trim();
@@ -78,9 +45,29 @@ const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
     return src || '/placeholder-commander.jpg';
   })();
 
+  const toggleExpanded = () => setExpanded(prev => !prev);
+
+  const headerId = `proposal-header-${proposal.id}`;
+  const contentId = `proposal-content-${proposal.id}`;
+
   return (
     <div className={`proposal-item ${expanded ? 'expanded' : 'collapsed'}`}>
-      <div className="proposal-header" onClick={() => setExpanded(prev => !prev)} style={{ cursor: 'pointer' }}>
+      <div
+        className="proposal-header"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        id={headerId}
+        onClick={toggleExpanded}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleExpanded();
+          }
+        }}
+        style={{ cursor: 'pointer' }}
+      >
         <h3 className="proposal-name" style={{ marginRight: '0.5rem', flex: '0 1 auto' }}>{proposal.name}</h3>
         <div className="proposal-years" style={{ margin: '0 auto', flex: '0 0 auto' }}>
           {yearsInline}
@@ -92,13 +79,14 @@ const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
 
       {expanded && (
         <>
-          <div className="proposal-content">
+          <div className="proposal-content" id={contentId} aria-labelledby={headerId}>
             {/* Image Section (left) */}
             <div className="proposal-image-section">
               <div className="proposal-image-container">
                 <img
                   src={imageSrc}
                   alt={proposal.name}
+                  loading="lazy"
                   className="proposal-image"
                 />
               </div>
@@ -153,40 +141,46 @@ const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
             </div>
           </div>
 
-          {/* Actions */}
-          {proposal.status === 'pending' && (
+          {/* Actions (render only if corresponding handlers are provided) */}
+          {proposal.status === 'pending' && (onApprove || onEdit || onReject) && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button 
-                  onClick={onApprove} 
-                  className="btn btn-success"
-                  style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
-                >
-                  Approve
-                </button>
-                <button 
-                  onClick={onEdit}
-                  className="btn btn-warning"
-                  style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={onReject} 
-                  className="btn btn-danger"
-                  style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
-                >
-                  Reject
-                </button>
+                {typeof onApprove === 'function' && (
+                  <button
+                    onClick={onApprove}
+                    className="btn btn-success"
+                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
+                  >
+                    Approve
+                  </button>
+                )}
+                {typeof onEdit === 'function' && (
+                  <button
+                    onClick={onEdit}
+                    className="btn btn-warning"
+                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
+                  >
+                    Edit
+                  </button>
+                )}
+                {typeof onReject === 'function' && (
+                  <button
+                    onClick={onReject}
+                    className="btn btn-danger"
+                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
+                  >
+                    Reject
+                  </button>
+                )}
               </div>
             </div>
           )}
 
-          {proposal.status !== 'pending' && (
+          {proposal.status !== 'pending' && typeof onDelete === 'function' && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button 
-                  onClick={onDelete} 
+                <button
+                  onClick={onDelete}
                   className="btn btn-danger"
                   style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem', minWidth: '80px' }}
                 >
@@ -205,6 +199,6 @@ const ProposalItem = ({ proposal, onApprove, onReject, onEdit, onDelete }) => {
       )}
     </div>
   );
-};
+});
 
 export default ProposalItem;

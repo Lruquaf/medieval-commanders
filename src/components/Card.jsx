@@ -269,8 +269,8 @@ const Card = React.memo(({ card, isAdmin = false, onEdit, onDelete }) => {
                       // accent: dark tone for text/shadows; vivid: core tier color for strokes/glow
                       'Common': { accent: '#5a3b1f', vivid: '#cd7f32', pillBg: 'rgba(205,127,50,0.18)', pillStroke: '#cd7f32', innerLight: 'rgba(255, 230, 200, 0.35)' },
                       'Rare': { accent: '#4a4f55', vivid: '#c0c0c0', pillBg: 'rgba(192,192,192,0.18)', pillStroke: '#c0c0c0', innerLight: 'rgba(240, 240, 255, 0.35)' },
-                      'Epic': { accent: '#7a5a00', vivid: '#ffd700', pillBg: 'rgba(255,215,0,0.18)', pillStroke: '#ffd700', innerLight: 'rgba(255, 245, 200, 0.35)' },
-                      'Legendary': { accent: '#62224f', vivid: '#8c2e75', pillBg: 'rgba(125,15,107,0.16)', pillStroke: '#8c2e75', innerLight: 'rgba(240, 210, 235, 0.35)' },
+                      'Epic': { accent: '#5e4200', vivid: '#ffd700', pillBg: 'rgba(255,215,0,0.18)', pillStroke: '#ffd700', innerLight: 'rgba(255, 245, 200, 0.35)' },
+                      'Legendary': { accent: '#62224f', vivid: '#a3478e', pillBg: 'rgba(125,15,107,0.16)', pillStroke: '#8c2e75', innerLight: 'rgba(240, 210, 235, 0.35)' },
                       'Mythic': { accent: '#134a3a', vivid: '#50c878', pillBg: 'rgba(80,200,120,0.18)', pillStroke: '#50c878', innerLight: 'rgba(210, 255, 235, 0.35)' },
                     };
                     const theme = themeByTier[tierNameTitle] || { accent: '#d4af37', pillBg: 'rgba(212,175,55,0.14)', pillStroke: '#d4af37' };
@@ -390,20 +390,37 @@ const Card = React.memo(({ card, isAdmin = false, onEdit, onDelete }) => {
                       ctx.shadowColor = 'rgba(0,0,0,0.45)';
                       ctx.shadowBlur = 24;
                       ctx.shadowOffsetY = 10;
-                      drawRoundedRectPath(frameX, frameY, frameW, frameH, borderR);
+                      // draw stroke fully outside the image frame by expanding the path
+                      const outerStrokeW1 = 12;
+                      const outerExpand1 = outerStrokeW1 / 2;
+                      drawRoundedRectPath(
+                        frameX - outerExpand1,
+                        frameY - outerExpand1,
+                        frameW + outerStrokeW1,
+                        frameH + outerStrokeW1,
+                        borderR + outerExpand1
+                      );
                       ctx.strokeStyle = theme.vivid;
-                      ctx.lineWidth = 12;
+                      ctx.lineWidth = outerStrokeW1;
                       ctx.stroke();
-                      // add colored glow pass (no offset)
+                      // add colored glow pass (also outside)
                       ctx.shadowColor = theme.vivid + 'AA';
                       ctx.shadowBlur = 30;
                       ctx.shadowOffsetY = 0;
                       ctx.shadowOffsetX = 0;
-                      drawRoundedRectPath(frameX, frameY, frameW, frameH, borderR);
-                      ctx.lineWidth = 6;
+                      const outerStrokeW2 = 6;
+                      const outerExpand2 = outerStrokeW2 / 2;
+                      drawRoundedRectPath(
+                        frameX - outerExpand2,
+                        frameY - outerExpand2,
+                        frameW + outerStrokeW2,
+                        frameH + outerStrokeW2,
+                        borderR + outerExpand2
+                      );
+                      ctx.lineWidth = outerStrokeW2;
                       ctx.strokeStyle = theme.vivid;
                       ctx.stroke();
-                      // Inner stroke with slight inset and lighter color
+                      // Inner stroke with slight inset and lighter color (kept inside for detail)
                       const inset = 10;
                       drawRoundedRectPath(frameX + inset, frameY + inset, frameW - inset * 2, frameH - inset * 2, Math.max(12, borderR - 6));
                       ctx.strokeStyle = theme.innerLight;

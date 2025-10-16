@@ -26,6 +26,7 @@ const CardsTab = ({ cards, sortBy, sortOrder, setSortBy, setSortOrder, onCreateC
                 onChange={(e) => setSortBy(e.target.value)}
                 className="sort-select"
               >
+                <option value="createdAt">Created At</option>
                 <option value="name">Name</option>
                 <option value="birthYear">Birth Year</option>
                 <option value="deathYear">Death Year</option>
@@ -51,6 +52,10 @@ const CardsTab = ({ cards, sortBy, sortOrder, setSortBy, setSortOrder, onCreateC
               .sort((a, b) => {
                 let aValue, bValue;
                 switch (sortBy) {
+                  case 'createdAt':
+                    aValue = new Date(a.createdAt);
+                    bValue = new Date(b.createdAt);
+                    break;
                   case 'name':
                     aValue = a.name.toLowerCase();
                     bValue = b.name.toLowerCase();

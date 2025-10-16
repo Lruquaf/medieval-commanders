@@ -67,6 +67,13 @@ const errorInterceptor = (error) => {
 };
 
 const requestInterceptor = (config) => {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (_) {}
   if (DEV_VERBOSE) {
     // eslint-disable-next-line no-console
     console.log('API Request', {

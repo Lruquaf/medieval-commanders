@@ -46,6 +46,10 @@ const CollectionGallery = () => {
     let aValue, bValue;
     
     switch (sortBy) {
+      case 'createdAt':
+        aValue = new Date(a.createdAt);
+        bValue = new Date(b.createdAt);
+        break;
       case 'name':
         aValue = a.name.toLowerCase();
         bValue = b.name.toLowerCase();
@@ -140,6 +144,7 @@ const CollectionGallery = () => {
               onChange={(val) => setSortBy(val)}
               label="Sort by"
               options={[
+              { value: 'createdAt', label: 'Created At' },
                 { value: 'name', label: 'Name' },
                 { value: 'birthYear', label: 'Birth Year' },
                 { value: 'deathYear', label: 'Death Year' },

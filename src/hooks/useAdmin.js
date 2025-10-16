@@ -3,18 +3,19 @@ import apiClient from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import { normalizeAdminSettings } from '../api/adapters';
 
-const AUTH_KEY = 'adminAuthenticated';
+const AUTH_KEY = 'adminToken';
 
 export function useAdmin() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const isAuthenticated = () => localStorage.getItem(AUTH_KEY) === 'true';
+  const isAuthenticated = () => Boolean(localStorage.getItem(AUTH_KEY));
 
-  const login = (username, password) => {
-    if (username === 'admin' && password === 'admin123') {
-      localStorage.setItem(AUTH_KEY, 'true');
+  const login = async (username, password) => {
+    const { data } = await apiClient.post(ENDPOINTS.AUTH.LOGIN, { username, password });
+    if (data?.token) {
+      localStorage.setItem(AUTH_KEY, data.token);
       return true;
     }
     return false;
@@ -22,6 +23,8 @@ export function useAdmin() {
 
   const logout = () => {
     localStorage.removeItem(AUTH_KEY);
+    // Clean up any legacy auth flag if it exists
+    try { localStorage.removeItem('adminAuthenticated'); } catch (_) {}
   };
 
   const fetchSettings = useCallback(async () => {

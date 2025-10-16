@@ -93,6 +93,11 @@ const CardListItem = React.memo(({ card }) => {
         <div className="card-list-name">{card.name}</div>
         <Years />
         <div className="card-list-tier">
+          {/* Desktop/tablet: show default tier badge */}
+          <div className={`card-tier ${getTierClass(card.tier)} card-list-tier-badge`}>
+            {card.tier}
+          </div>
+          {/* Mobile: show compact dot */}
           <span
             className={`card-list-tier-dot ${getTierClass(card.tier)}`}
             title={String(card.tier || '')}

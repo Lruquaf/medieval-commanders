@@ -293,7 +293,7 @@ body::before {
 /* Scale down internal elements by ~50% for small-grid */
 .card-grid.small-grid .card-content { padding: 0.75rem; display: flex; flex-direction: column; align-items: center; }
 .card-grid.small-grid .card-name { font-size: 0.55rem; margin-bottom: 0.5rem; height: 1.95rem; line-height: 1.3; }
-.card-grid.small-grid .card-tier { font-size: 0.65rem; height: 0.9rem; width: 50px; min-width: 50px; max-width: 50px; padding: 0.2rem 0.4rem; border-width: 1px; display: flex; align-items: center; justify-content: center; margin: 0; align-self: center; }
+.card-grid.small-grid .card-tier { font-size: 0.65rem; height: 1.08rem; width: 60px; min-width: 60px; max-width: 60px; padding: 0.24rem 0.48rem; border-width: 1px; display: flex; align-items: center; justify-content: center; margin: 0; align-self: center; }
 .card-grid.small-grid .modal-image { width: 175px; height: 175px; max-width: 175px; max-height: 175px; }
 .card-grid.small-grid .card-image-container { border-bottom-width: 2px; }
 .card-grid.small-grid .modal-title { font-size: 1rem; }
@@ -466,48 +466,58 @@ body::before {
   line-height: 1;
 }
 
+/* Enlarge tier pill by 20% in collection (large icons) grid view only */
+.container .card-grid:not(.small-grid) .card-tier {
+  padding: 0.48rem 0.96rem;
+  border-radius: 24px;
+  height: 2.16rem;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+}
+
 .tier-legendary {
-  background: linear-gradient(135deg, #ffd700, #ffed4e, #ffd700);
-  color: #8b4513;
-  border-color: #ffd700;
+  background: linear-gradient(135deg, #5a1945, #8c2e75, #8a2be2); /* Lighter Regal Erguvani Purple */
+  color: #62224f;
+  border-color: #62224f;
   box-shadow: 
-    0 0 20px rgba(255, 215, 0, 0.5),
+    0 0 20px rgba(164, 58, 144, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .tier-mythic {
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e, #ff6b6b);
-  color: #ffffff;
-  border-color: #ff6b6b;
+  background: linear-gradient(135deg, #0f5132, #50c878, #10b981); /* Emerald */
+  color: #134a3a;
+  border-color: #134a3a;
   box-shadow: 
-    0 0 25px rgba(255, 107, 107, 0.7),
+    0 0 25px rgba(80, 200, 120, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .tier-epic {
-  background: linear-gradient(135deg, #8b008b, #9932cc, #8b008b);
-  color: #ffd700;
-  border-color: #9932cc;
+  background: linear-gradient(135deg, #b8860b, #ffd700, #fff1a8); /* Rich Gold */
+  color: #7a5a00;
+  border-color: #7a5a00;
   box-shadow: 
-    0 0 20px rgba(153, 50, 204, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 0 22px rgba(255, 215, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .tier-rare {
-  background: linear-gradient(135deg, #4169e1, #6495ed, #4169e1);
-  color: #ffd700;
-  border-color: #4169e1;
+  background: linear-gradient(135deg, #9ea7ad, #c0c0c0, #eeeeee); /* True Silver */
+  color: #4a4f55;
+  border-color: #4a4f55;
   box-shadow: 
-    0 0 20px rgba(65, 105, 225, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 0 20px rgba(192, 192, 192, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .tier-common {
-  background: linear-gradient(135deg, #228b22, #32cd32, #228b22);
-  color: #ffd700;
-  border-color: #32cd32;
+  background: linear-gradient(135deg, #7d5a2f, #cd7f32, #b87333); /* True Bronze/Copper */
+  color: #5a3b1f;
+  border-color: #5a3b1f;
   box-shadow: 
-    0 0 20px rgba(50, 205, 50, 0.5),
+    0 0 20px rgba(205, 127, 50, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -658,8 +668,11 @@ a:visited {
 }
 
 .modal-tier {
-  display: inline-block;
-  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.8rem;
+  padding: 0 1rem;
   border-radius: 25px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -1282,7 +1295,7 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .card-list-item {
   display: grid;
-  grid-template-columns: 80px 1fr auto 40px; /* image | name | centered years | tier-dot */
+  grid-template-columns: 80px 1fr auto auto; /* image | name | centered years | tier badge (desktop) */
   gap: 1rem;
   align-items: center;
   padding: 0.75rem 1rem;
@@ -1352,11 +1365,8 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 /* List view tier dot at far right */
-.card-list-tier {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+.card-list-tier { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+.card-list-tier-badge { display: none; }
 
 .card-list-tier-dot {
   width: 22px;
@@ -1367,15 +1377,15 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 /* Map tier color styles onto dot via existing tier classes */
-.card-list-tier-dot.tier-legendary { color: #ffd700; }
-.card-list-tier-dot.tier-mythic { color: #ff6b6b; }
-.card-list-tier-dot.tier-epic { color: #9932cc; }
-.card-list-tier-dot.tier-rare { color: #4169e1; }
-.card-list-tier-dot.tier-common { color: #32cd32; }
+.card-list-tier-dot.tier-legendary { color: #7d0f6b; }
+.card-list-tier-dot.tier-mythic { color: #50c878; }
+.card-list-tier-dot.tier-epic { color: #ffd700; }
+.card-list-tier-dot.tier-rare { color: #c0c0c0; }
+.card-list-tier-dot.tier-common { color: #cd7f32; }
 
 @media (max-width: 768px) {
   .card-list-item {
-    grid-template-columns: 64px 1fr auto 36px;
+    grid-template-columns: 64px 1fr auto 36px; /* image | name | centered years | dot */
     gap: 0.75rem;
     padding: 0.6rem 0.8rem;
   }
@@ -1384,6 +1394,14 @@ input[type="range"]::-moz-range-thumb:hover {
     width: 64px;
     height: 64px;
   }
+  /* On tablet/phone: show dot, hide badge */
+  .card-list-tier-badge { display: none; }
+}
+
+/* On larger screens: show default badge, hide mobile dot */
+@media (min-width: 769px) {
+  .card-list-tier-badge { display: inline-flex; }
+  .card-list-tier-dot { display: none; }
 }
 
 .proposal-date-range {
@@ -2028,10 +2046,10 @@ input[type="range"]::-moz-range-thumb:hover {
     height: 1.95rem; /* keep two-line clamp proportion */
   }
   .card-grid.small-grid .card-tier {
-    min-width: 50px; /* half of 100px */
-    max-width: 50px;
-    height: 0.9rem; /* half of 1.8rem */
-    font-size: 0.4rem; /* half of 0.8rem */
+    min-width: 60px; /* +20% over 50px */
+    max-width: 60px;
+    height: 1.08rem; /* +20% over 0.9rem */
+    font-size: 0.4rem; /* keep original small-phone font size */
   }
   /* List view years badge on phones */
   .card-list-years-badge {

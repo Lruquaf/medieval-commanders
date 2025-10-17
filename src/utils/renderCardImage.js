@@ -162,7 +162,7 @@ export function renderAndDownloadCard(card, ratioKey) {
     Common: { accent: '#5a3b1f', vivid: '#cd7f32', pillBg: 'rgba(205,127,50,0.18)', pillStroke: '#cd7f32', innerLight: 'rgba(255, 230, 200, 0.35)' },
     Rare: { accent: '#4a4f55', vivid: '#c0c0c0', pillBg: 'rgba(192,192,192,0.18)', pillStroke: '#c0c0c0', innerLight: 'rgba(240, 240, 255, 0.35)' },
     Epic: { accent: '#5e4200', vivid: '#ffd700', pillBg: 'rgba(255,215,0,0.18)', pillStroke: '#ffd700', innerLight: 'rgba(255, 245, 200, 0.35)' },
-    Legendary: { accent: '#62224f', vivid: '#a3478e', pillBg: 'rgba(125,15,107,0.16)', pillStroke: '#8c2e75', innerLight: 'rgba(240, 210, 235, 0.35)' },
+    Legendary: { accent: '#531a3f', vivid: '#a3478e', pillBg: 'rgba(140,55,120,0.26)', pillStroke: '#7a2764', innerLight: 'rgba(240, 210, 235, 0.35)' },
     Mythic: { accent: '#134a3a', vivid: '#50c878', pillBg: 'rgba(80,200,120,0.18)', pillStroke: '#50c878', innerLight: 'rgba(210, 255, 235, 0.35)' },
   };
   const theme = themeByTier[tierNameTitle] || { accent: '#d4af37', pillBg: 'rgba(212,175,55,0.14)', pillStroke: '#d4af37' };
@@ -246,7 +246,8 @@ export function renderAndDownloadCard(card, ratioKey) {
   const pillW = Math.ceil(textW + pillPaddingX * 2);
   const pillX = Math.floor((width - pillW) / 2);
   const pillY = Math.round(180 * sH) + (ratioKey === '1:1' ? offsetY : 0);
-  ctx.fillStyle = theme.pillBg;
+  // Force non-transparent background for visibility before stroke
+  ctx.fillStyle = theme.pillBg || 'rgba(163,71,142,0.32)';
   ctx.strokeStyle = theme.accent;
   const pillBorderWidth = isCommonTier ? 8 * sW : 6 * sW;
   ctx.lineWidth = pillBorderWidth;
@@ -260,6 +261,7 @@ export function renderAndDownloadCard(card, ratioKey) {
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
+  // Ensure text draws above background
   ctx.fillStyle = theme.vivid;
   const prevBaseline = ctx.textBaseline;
   ctx.textBaseline = 'alphabetic';
@@ -371,6 +373,11 @@ export function renderAndDownloadCard(card, ratioKey) {
         const addEach = Math.round(Math.max(0, targetLen - currentLen) / 2);
         vYTop = Math.max(innerMargin, vYTop - addEach);
         vYBottom = Math.min(height - innerMargin, vYBottom + addEach);
+        // For 4:5, shorten 5% from bottom
+        if (ratioKey === '4:5') {
+          const len = vYBottom - vYTop;
+          vYBottom = Math.max(vYTop, vYBottom - Math.round(len * 0.05));
+        }
         ctx.save();
         ctx.strokeStyle = theme.vivid;
         ctx.lineWidth = 2 * sW;
@@ -457,6 +464,13 @@ export function renderAndDownloadCard(card, ratioKey) {
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
     }
+
+    // Re-fill tier pill background after overlay to ensure visibility
+    ctx.save();
+    ctx.fillStyle = theme.pillBg;
+    drawRoundedRectPath(pillX, pillY, pillW, pillH, r);
+    ctx.fill();
+    ctx.restore();
 
     ctx.save();
     drawRoundedRectPath(outerMargin, outerMargin, width - outerMargin * 2, height - outerMargin * 2, Math.round(26 * sW));

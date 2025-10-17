@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import CollectionGallery from './pages/CollectionGallery';
 import AdminPanel from './pages/AdminPanel';
 import PublicProposals from './pages/PublicProposals';
+import About from './pages/About';
 
 // Error boundary component
 class ErrorBoundary extends React.Component {
@@ -47,6 +48,7 @@ function AppContent() {
         <Route path="/" element={<CollectionGallery />} />
         <Route path="/proposals" element={<PublicProposals />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/about" element={<About />} />
       </Routes>
       {!isAdminPage && <Footer />}
     </div>

@@ -504,6 +504,13 @@ const Card = React.memo(({ card, isAdmin = false, onEdit, onDelete }) => {
                         ctx.restore();
                       }
 
+                      // Re-fill tier pill background after overlay to ensure visibility
+                      ctx.save();
+                      ctx.fillStyle = theme.pillBg;
+                      drawRoundedRectPath(pillX, pillY, pillW, pillH, r);
+                      ctx.fill();
+                      ctx.restore();
+
                       // Re-stroke outer border and re-draw tier pill border/text to avoid wash-out
                       ctx.save();
                       drawRoundedRectPath(outerMargin, outerMargin, width - outerMargin * 2, height - outerMargin * 2, 26);
@@ -633,6 +640,13 @@ const Card = React.memo(({ card, isAdmin = false, onEdit, onDelete }) => {
                       ctx.stroke();
                       ctx.shadowColor = 'transparent';
                       ctx.shadowBlur = 0;
+                      ctx.restore();
+
+                      // Re-fill tier pill background after overlay (error path) for visibility
+                      ctx.save();
+                      ctx.fillStyle = theme.pillBg;
+                      drawRoundedRectPath(pillX, pillY, pillW, pillH, r);
+                      ctx.fill();
                       ctx.restore();
 
                       // Re-stroke pill border (dark accent) after overlay (error path)

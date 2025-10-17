@@ -1943,6 +1943,10 @@ input[type="range"]::-moz-range-thumb:hover {
   .admin-section {
     padding: 1.5rem;
   }
+  /* Add breathing space from screen edges on mobile */
+  .admin-tabs-container { padding: 0 0.5rem; }
+  .admin-section .card-grid { padding: 0 0.5rem; }
+  .admin-section-header { padding: 0 0.5rem; }
   
   .admin-section .card-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2137,6 +2141,10 @@ input[type="range"]::-moz-range-thumb:hover {
   .admin-section {
     padding: 1rem;
   }
+  /* Slightly larger side padding on very small phones */
+  .admin-tabs-container { padding: 0 0.75rem; }
+  .admin-section .card-grid { padding: 0 0.75rem; }
+  .admin-section-header { padding: 0 0.75rem; }
   
   .section-title {
     font-size: 1.25rem;

@@ -218,8 +218,9 @@ export function renderAndDownloadCard(card, ratioKey) {
     let frameW0 = Math.floor(baseFrameW0 * 0.75);
     let frameH0 = Math.floor(baseFrameH0 * 0.75);
     const frameSize0 = Math.min(frameW0, frameH0);
-    frameW0 = frameSize0;
-    frameH0 = frameSize0;
+    // Enlarge by 25%
+    frameW0 = Math.floor(frameSize0 * 1.25);
+    frameH0 = Math.floor(frameSize0 * 1.25);
     const frameYBase = Math.round(300 * sH);
     const nameYBase = frameYBase + frameH0 + Math.round(160 * sH);
     const divYBase = nameYBase + Math.round(64 * sH);
@@ -280,8 +281,18 @@ export function renderAndDownloadCard(card, ratioKey) {
   let frameH = Math.floor(baseFrameH * 0.75);
   if (ratioKey === '1:1' || ratioKey === '4:5') {
     const frameSize = Math.min(frameW, frameH);
-    frameW = frameSize;
-    frameH = frameSize;
+    // For 1:1 enlarge by 25%, preserving square; cap by base frame
+    if (ratioKey === '1:1') {
+      const enlarged = Math.floor(frameSize * 1.25);
+      const capW = Math.min(baseFrameW, enlarged);
+      const capH = Math.min(baseFrameH, enlarged);
+      const capped = Math.min(capW, capH);
+      frameW = capped;
+      frameH = capped;
+    } else {
+      frameW = frameSize;
+      frameH = frameSize;
+    }
   }
   if (ratioKey === '4:5') {
     frameW = Math.floor(frameW * 0.825);
@@ -373,10 +384,13 @@ export function renderAndDownloadCard(card, ratioKey) {
         const addEach = Math.round(Math.max(0, targetLen - currentLen) / 2);
         vYTop = Math.max(innerMargin, vYTop - addEach);
         vYBottom = Math.min(height - innerMargin, vYBottom + addEach);
-        // For 4:5, shorten 5% from bottom
+        // Shorten bottom only
+        const len = vYBottom - vYTop;
         if (ratioKey === '4:5') {
-          const len = vYBottom - vYTop;
           vYBottom = Math.max(vYTop, vYBottom - Math.round(len * 0.05));
+        }
+        if (ratioKey === '1:1') {
+          vYBottom = Math.max(vYTop, vYBottom - Math.round(len * 0.10));
         }
         ctx.save();
         ctx.strokeStyle = theme.vivid;

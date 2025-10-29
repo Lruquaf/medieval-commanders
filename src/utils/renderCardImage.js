@@ -427,47 +427,46 @@ export function renderAndDownloadCard(card, ratioKey) {
     const nameY = frameY + frameH + (ratioKey === '1:1' ? Math.round(160 * sH) : ratioKey === '4:5' ? Math.round(140 * sH) : Math.round(130 * sH));
     ctx.fillText(nameText, Math.floor(width / 2), nameY);
 
-    // Years and description
+    // Years and description (always render years with placeholders)
     const birth = card.birthYear ?? null;
     const death = card.deathYear ?? null;
-    const years = birth || death ? `${birth ?? '???'} - ${death ?? '???'}` : '';
-    if (years) {
-      const divY = nameY + (ratioKey === '1:1' ? Math.round(64 * sH) : Math.round(52 * sH));
-      const sideGapH = Math.floor((frameX - innerMargin) / 2);
-      let leftX = width * 0.175;
-      let rightX = width * 0.825;
-      if (sideGapH > 8 * sW) {
-        leftX = innerMargin + sideGapH;
-        rightX = width - innerMargin - sideGapH;
-      }
-      ctx.strokeStyle = theme.vivid;
-      ctx.lineWidth = 2 * sW;
-      ctx.beginPath();
-      ctx.moveTo(leftX, divY);
-      ctx.lineTo(rightX, divY);
-      ctx.stroke();
-      const dsz = 15 * sW;
-      drawDiamond(leftX, divY, dsz, theme.vivid);
-      drawDiamond(rightX, divY, dsz, theme.vivid);
+    const fmtYear = (v) => (v === null || v === undefined || v === '' ? '?' : String(v));
+    const years = `${fmtYear(birth)} - ${fmtYear(death)}`;
+    const divY = nameY + (ratioKey === '1:1' ? Math.round(64 * sH) : Math.round(52 * sH));
+    const sideGapH = Math.floor((frameX - innerMargin) / 2);
+    let leftX = width * 0.175;
+    let rightX = width * 0.825;
+    if (sideGapH > 8 * sW) {
+      leftX = innerMargin + sideGapH;
+      rightX = width - innerMargin - sideGapH;
+    }
+    ctx.strokeStyle = theme.vivid;
+    ctx.lineWidth = 2 * sW;
+    ctx.beginPath();
+    ctx.moveTo(leftX, divY);
+    ctx.lineTo(rightX, divY);
+    ctx.stroke();
+    const dsz = 15 * sW;
+    drawDiamond(leftX, divY, dsz, theme.vivid);
+    drawDiamond(rightX, divY, dsz, theme.vivid);
 
-      ctx.font = `bold ${Math.round(46 * sW)}px Cinzel, serif`;
-      ctx.fillStyle = theme.vivid;
-      ctx.fillText(years, Math.floor(width / 2), divY + (ratioKey === '1:1' ? Math.round(72 * sH) : Math.round(64 * sH)));
+    ctx.font = `bold ${Math.round(46 * sW)}px Cinzel, serif`;
+    ctx.fillStyle = theme.vivid;
+    ctx.fillText(years, Math.floor(width / 2), divY + (ratioKey === '1:1' ? Math.round(72 * sH) : Math.round(64 * sH)));
 
-      const desc = String(card.description || '').trim();
-      if (desc && ratioKey !== '1:1') {
-        const descTop = divY + (ratioKey === '1:1' ? Math.round(80 * sH) : Math.round(64 * sH)) + Math.round(64 * sH);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#e6d7c3';
-        const descFontSize = Math.round(32 * sW);
-        ctx.font = `normal ${descFontSize}px 'IM Fell English', serif`;
-        const maxDescWidth = width - Math.round((ratioKey === '4:5' ? 200 : 240) * sW);
-        const descLines = wrapTitle(desc, maxDescWidth, 10);
-        const descLineHeight = Math.round(descFontSize * 1.4);
-        descLines.forEach((line, i) => {
-          ctx.fillText(line, Math.floor(width / 2), descTop + i * descLineHeight);
-        });
-      }
+    const desc = String(card.description || '').trim();
+    if (desc && ratioKey !== '1:1') {
+      const descTop = divY + (ratioKey === '1:1' ? Math.round(80 * sH) : Math.round(64 * sH)) + Math.round(64 * sH);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#e6d7c3';
+      const descFontSize = Math.round(32 * sW);
+      ctx.font = `normal ${descFontSize}px 'IM Fell English', serif`;
+      const maxDescWidth = width - Math.round((ratioKey === '4:5' ? 200 : 240) * sW);
+      const descLines = wrapTitle(desc, maxDescWidth, 10);
+      const descLineHeight = Math.round(descFontSize * 1.4);
+      descLines.forEach((line, i) => {
+        ctx.fillText(line, Math.floor(width / 2), descTop + i * descLineHeight);
+      });
     }
 
     if (parchPattern) {
@@ -542,10 +541,11 @@ export function renderAndDownloadCard(card, ratioKey) {
     ctx.fillStyle = '#f0e4c3';
     const nameYErr = Math.floor(height / 2) + Math.round(60 * sH);
     ctx.fillText(nameText, Math.floor(width / 2), nameYErr);
-    const birth = card.birthYear ?? null;
-    const death = card.deathYear ?? null;
-    const years = birth || death ? `${birth ?? '???'} - ${death ?? '???'}` : '';
-    if (years) {
+  const birth = card.birthYear ?? null;
+  const death = card.deathYear ?? null;
+  const fmtYear = (v) => (v === null || v === undefined || v === '' ? '?' : String(v));
+  const years = `${fmtYear(birth)} - ${fmtYear(death)}`;
+  {
       ctx.strokeStyle = theme.vivid;
       const divY = nameYErr + Math.round(36 * sH);
       const sideGapH2 = Math.floor((frameX - innerMargin) / 2);
@@ -563,12 +563,12 @@ export function renderAndDownloadCard(card, ratioKey) {
       const dsz = 15 * sW;
       drawDiamond(leftX2, divY, dsz, theme.vivid);
       drawDiamond(rightX2, divY, dsz, theme.vivid);
-      ctx.font = `bold ${Math.round(46 * sW)}px Cinzel, serif`;
-      ctx.fillStyle = theme.vivid;
-      ctx.fillText(years, Math.floor(width / 2), divY + Math.round(64 * sH));
+    ctx.font = `bold ${Math.round(46 * sW)}px Cinzel, serif`;
+    ctx.fillStyle = theme.vivid;
+    ctx.fillText(years, Math.floor(width / 2), divY + Math.round(64 * sH));
 
-      const desc = String(card.description || '').trim();
-      if (desc && ratioKey !== '1:1') {
+    const desc = String(card.description || '').trim();
+    if (desc && ratioKey !== '1:1') {
         const descTop = divY + Math.round(64 * sH) + Math.round(60 * sH);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#e6d7c3';
@@ -580,7 +580,7 @@ export function renderAndDownloadCard(card, ratioKey) {
         descLines.forEach((line, i) => {
           ctx.fillText(line, Math.floor(width / 2), descTop + i * descLineHeight);
         });
-      }
+    }
     }
     if (parchPattern) {
       ctx.save();

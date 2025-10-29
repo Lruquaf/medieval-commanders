@@ -1,15 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import apiClient, { uploadClient } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import { normalizeCard } from '../api/adapters';
 
-export function useCards({ admin = false } = {}) {
+export function useCards({ admin = false, pollMs = 0 } = {}) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isFetchingRef = useRef(false);
 
   const fetchCards = useCallback(async () => {
     try {
+      if (isFetchingRef.current) return cards; // avoid overlapping fetches
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
       const url = admin ? ENDPOINTS.ADMIN.CARDS : ENDPOINTS.CARDS;
@@ -21,6 +24,7 @@ export function useCards({ admin = false } = {}) {
       setError(e);
       return [];
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
   }, [admin]);
@@ -46,6 +50,18 @@ export function useCards({ admin = false } = {}) {
     await fetchCards();
   }, [fetchCards]);
 
+  useEffect(() => {
+    if (!pollMs || pollMs <= 0) return;
+    let intervalId;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isFetchingRef.current) return;
+      fetchCards();
+    };
+    intervalId = setInterval(tick, pollMs);
+    return () => clearInterval(intervalId);
+  }, [pollMs, fetchCards]);
+
   return {
     cards,
     loading,
@@ -59,4 +75,6 @@ export function useCards({ admin = false } = {}) {
   };
 }
 
+
+ 
 

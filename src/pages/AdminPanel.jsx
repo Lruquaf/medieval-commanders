@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCards } from '../hooks/useCards';
 import { useProposals } from '../hooks/useProposals';
 import { useAdmin } from '../hooks/useAdmin';
@@ -41,6 +41,7 @@ const AdminPanel = () => {
 
   const cardsHook = useCards({ admin: true });
   const proposalsHook = useProposals();
+  const isPollingRef = useRef(false);
   const adminHook = useAdmin();
 
   useEffect(() => {
@@ -103,6 +104,25 @@ const AdminPanel = () => {
       setLoading(false);
     }
   };
+
+  // Lightweight polling for admin lists to reflect updates without manual refresh
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const intervalMs = 10000;
+    let id;
+    const tick = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
+      try {
+        await fetchData();
+      } finally {
+        isPollingRef.current = false;
+      }
+    };
+    id = setInterval(tick, intervalMs);
+    return () => clearInterval(id);
+  }, [isAuthenticated, activeTab]);
 
   const handleApproveProposal = async (proposalId) => {
     try {

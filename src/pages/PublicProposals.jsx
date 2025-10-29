@@ -6,7 +6,7 @@ import EmptyState from '../components/EmptyState';
 import ProposalFormModal from '../components/ProposalFormModal';
 
 const PublicProposals = () => {
-  const { proposals, loading, error, fetchProposals, refetch } = usePublicProposals();
+  const { proposals, loading, error, fetchProposals, refetch } = usePublicProposals({ pollMs: 10000 });
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   useEffect(() => {

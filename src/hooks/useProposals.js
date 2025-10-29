@@ -1,15 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import apiClient, { uploadClient } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import { normalizeProposal } from '../api/adapters';
 
-export function useProposals() {
+export function useProposals({ pollMs = 0 } = {}) {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isFetchingRef = useRef(false);
 
   const fetchProposals = useCallback(async () => {
     try {
+      if (isFetchingRef.current) return proposals;
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
       const res = await apiClient.get(ENDPOINTS.ADMIN.PROPOSALS);
@@ -20,9 +23,22 @@ export function useProposals() {
       setError(e);
       return [];
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!pollMs || pollMs <= 0) return;
+    let intervalId;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isFetchingRef.current) return;
+      fetchProposals();
+    };
+    intervalId = setInterval(tick, pollMs);
+    return () => clearInterval(intervalId);
+  }, [pollMs, fetchProposals]);
 
   const approveProposal = useCallback(async (id) => {
     await apiClient.post(ENDPOINTS.ADMIN.proposalApprove(id));

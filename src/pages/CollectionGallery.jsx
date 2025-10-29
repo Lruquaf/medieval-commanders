@@ -14,7 +14,7 @@ const CollectionGallery = () => {
   const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('mc.sortOrder') || 'asc');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('mc.viewMode') || 'grid'); // 'grid' | 'list' | 'small'
 
-  const { cards: fetchedCards, fetchCards, loading: cardsLoading, error: cardsError } = useCards({ admin: false });
+  const { cards: fetchedCards, fetchCards, loading: cardsLoading, error: cardsError } = useCards({ admin: false, pollMs: 10000 });
 
   useEffect(() => {
     fetchCards();
